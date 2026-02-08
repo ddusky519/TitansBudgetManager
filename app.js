@@ -199,8 +199,11 @@ function App() {
             return total + cost;
         }, 0);
 
+        // Extra Games
+        const extraGamesCost = (data.extraGames || 0) * (data.feeStructure.gamesAfter13 || 0);
+
         // Shared Expenses (Tournaments, Coach costs, etc. - divided by players)
-        const sharedExpensesForCalc = tournamentTotal + otherExpensesTotal + coachExpenses;
+        const sharedExpensesForCalc = tournamentTotal + otherExpensesTotal + coachExpenses + extraGamesCost;
 
         // Total Budgeted Expenses (Includes everything)
         const totalBudgetedExpenses = sharedExpensesForCalc + playerTitansFees;
