@@ -36,22 +36,33 @@
     <div id="root"></div>
 
     <!-- 5. Load the App Logic -->
-    <script type="text/babel" src="./app.js"></script>
+    <script type="text/babel" data-presets="react" src="./app.js"></script>
 
     <!-- 6. Mount the App -->
-    <script type="text/babel">
-        // Wait for App to be defined globally by the script above
-        if (typeof App === 'undefined') {
-            document.getElementById('root').innerHTML = '<div class="text-white p-4">Error: App component not loaded. Check console for details.</div>';
-            console.error('App component is undefined. Check app.js for errors.');
-        } else {
-            try {
+    <script type="text/babel" data-presets="react">
+        const mountApp = () => {
+            console.log("Attempting to mount App...");
+            if (typeof App === 'undefined') {
+                if (window.App) {
+                    console.log("App found on window.App, using that.");
+                    const root = ReactDOM.createRoot(document.getElementById('root'));
+                    root.render(<window.App />);
+                    return;
+                }
+                console.error('App component is still undefined. Waiting...');
+                setTimeout(mountApp, 500); // Retry in 500ms
+            } else {
+                console.log("App component found. Mounting...");
                 const root = ReactDOM.createRoot(document.getElementById('root'));
                 root.render(<App />);
-            } catch (e) {
-                console.error("React Mount Error:", e);
-                document.getElementById('root').innerHTML = '<div class="text-white p-4">Application Crashed. See console.</div>';
             }
+        };
+
+        // Try to mount immediately, or wait if not ready
+        if (document.readyState === 'complete') {
+            mountApp();
+        } else {
+            window.addEventListener('load', mountApp);
         }
     </script>
 
