@@ -338,6 +338,136 @@ function App() {
         reader.readAsText(file);
     };
 
+    // PDF Generation
+    const generatePDF = () => {
+        if (!window.jspdf) {
+            alert("PDF Library not loaded. Please refresh.");
+            return;
+        }
+
+        const doc = new window.jspdf.jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+
+        // Helper
+        const centerText = (text, y, size = 12, style = 'normal') => {
+            doc.setFontSize(size);
+            doc.setFont("helvetica", style);
+            const textWidth = doc.getStringUnitWidth(text) * size / doc.internal.scaleFactor;
+            doc.text(text, (pageWidth - textWidth) / 2, y);
+        };
+
+        const drawLine = (y) => {
+            doc.setDrawColor(200, 200, 200);
+            doc.line(14, y, pageWidth - 14, y);
+        };
+
+        // Header
+        doc.setFillColor(6, 78, 59); // Emerald 900
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+
+        centerText((data.ageGroup || data.headCoach) ? `${data.ageGroup} ${data.isTier2 ? 'T2' : ''} - ${data.headCoach}` : 'Titan Budget', 20, 22, 'bold');
+        centerText(`${data.season} Budget Report`, 30, 14);
+
+        doc.setTextColor(0, 0, 0);
+
+        let finalY = 50;
+
+        // 1. Titans Fees (Organization)
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Titans Fees (Organization)", 14, finalY);
+        finalY += 8;
+
+        const feeRows = [];
+        if (financials.playerTitansFees > 0) feeRows.push(["Player Gear", fmt(financials.playerTitansFees)]);
+        if (financials.coachTitansFees > 0) feeRows.push(["Coach Gear", fmt(financials.coachTitansFees)]);
+        if (financials.extraGamesCost > 0) feeRows.push([`Extra Games (${data.extraGames})`, fmt(financials.extraGamesCost)]);
+        feeRows.push(["TOTAL OWED TO ORGANIZATION", fmt(financials.titansFees)]);
+
+        doc.autoTable({
+            startY: finalY,
+            head: [['Item', 'Amount']],
+            body: feeRows,
+            theme: 'striped',
+            headStyles: { fillColor: [217, 119, 6] }, // Amber 600
+            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+            didParseCell: (data) => {
+                if (data.row.index === feeRows.length - 1 && data.section === 'body') {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.textColor = [217, 119, 6];
+                }
+            }
+        });
+
+        finalY = doc.lastAutoTable.finalY + 15;
+
+        // 2. Team Expenses (Budget)
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Team Expenses Breakdown", 14, finalY);
+        finalY += 8;
+
+        const expenseRows = [
+            ...data.tournaments.map(t => [t.name || 'Tournament', fmt(t.cost)]),
+            ...data.expenses.map(e => [e.name || 'Expense', fmt(e.cost)]),
+            ["Titans Fees (From Above)", fmt(financials.titansFees)],
+            ["TOTAL TEAM BUDGET", fmt(financials.sharedExpenses)]
+        ];
+
+        doc.autoTable({
+            startY: finalY,
+            head: [['Item', 'Cost']],
+            body: expenseRows,
+            theme: 'striped',
+            headStyles: { fillColor: [6, 78, 59] }, // Emerald 900
+            columnStyles: { 1: { halign: 'right' } },
+            didParseCell: (data) => {
+                if (data.row.index === expenseRows.length - 1 && data.section === 'body') {
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            }
+        });
+
+        finalY = doc.lastAutoTable.finalY + 15;
+
+        // 3. Player Fees & Owed
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Player Fees & Amounts Owed", 14, finalY);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Per Player Share (Tournaments/Expenses): ${fmt(financials.perPlayerShare)}`, 14, finalY + 6);
+        finalY += 12;
+
+        const playerRows = data.roster.filter(p => p.type === 'player').map(p => {
+            const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0, base: 0, extras: 0, sponsorship: 0 };
+            return [
+                `${p.firstName} ${p.lastName}`,
+                `#${p.jersey}`,
+                p.packageType === 'full' ? 'Full ($850)' : 'Part ($750)',
+                fmt(f.extras),
+                fmt(f.sponsorship),
+                fmt(f.finalOwed)
+            ];
+        });
+
+        doc.autoTable({
+            startY: finalY,
+            head: [['Player', '#', 'Package', 'Extras', 'Sponsor', 'Total Owed']],
+            body: playerRows,
+            theme: 'grid',
+            headStyles: { fillColor: [15, 23, 42] }, // Slate 900
+            columnStyles: {
+                3: { halign: 'right' },
+                4: { halign: 'right' },
+                5: { halign: 'right', fontStyle: 'bold', textColor: [217, 119, 6] }
+            }
+        });
+
+        doc.save(`TitansBudget_${data.season}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
+
     // Reset Data
     const resetData = () => {
         if (window.confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
@@ -513,7 +643,12 @@ function App() {
                 {activeTab === 'expenses' && (
                     <div className="space-y-4">
                         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                            <h3 className="font-bold mb-2 text-slate-300 uppercase text-xs">Titans Fees (Organization)</h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-slate-300 uppercase text-xs">Titans Fees (Organization)</h3>
+                                <button onClick={generatePDF} className="flex items-center gap-1 bg-red-900/50 hover:bg-red-900/80 text-red-200 text-xs px-2 py-1 rounded border border-red-800 transition-colors">
+                                    <Download size={12} /> PDF Report
+                                </button>
+                            </div>
 
                             <div className="bg-slate-950 rounded border border-slate-800 p-2 mb-2">
                                 <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
