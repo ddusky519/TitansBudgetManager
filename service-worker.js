@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titans-budget-v21';
+const CACHE_NAME = 'titans-budget-v22';
 const urlsToCache = [
     './',
     './index.html',
@@ -11,7 +11,9 @@ const urlsToCache = [
     'https://unpkg.com/react@18/umd/react.production.min.js',
     'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
     'https://unpkg.com/@babel/standalone/babel.min.js',
-    'https://unpkg.com/lucide@latest'
+    'https://unpkg.com/lucide@latest',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js'
 ];
 
 self.addEventListener('install', event => {
