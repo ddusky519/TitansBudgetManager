@@ -77,10 +77,14 @@ const DEFAULT_FEES = {
 };
 
 const INITIAL_STATE = {
-    teamName: "18U Titans",
+    // Team Settings
+    ageGroup: "18U",
+    isTier2: false,
     headCoach: "",
     manager: "",
     season: "2026",
+
+    // Data
     roster: [],
     tournaments: [],
     expenses: [],
@@ -330,9 +334,9 @@ function App() {
                     <div className="text-center lg:text-left">
                         <h1 className="text-xl font-bold flex items-center justify-center lg:justify-start gap-2 text-white">
                             <span className="bg-amber-400 text-emerald-900 px-2 py-1 rounded text-sm font-black">T</span>
-                            Titan Budget
+                            {(data.ageGroup || data.headCoach) ? `${data.ageGroup} ${data.isTier2 ? 'T2' : ''} - ${data.headCoach}` : 'Titan Budget'}
                         </h1>
-                        <p className="text-emerald-200 text-xs mt-1">{data.teamName} | {data.season}</p>
+                        <p className="text-emerald-200 text-xs mt-1">{data.season} Season {data.manager ? `| Mgr: ${data.manager}` : ''}</p>
                     </div>
                     <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 bg-slate-900 rounded-lg p-1 w-full lg:w-auto border border-slate-800">
                         {[
@@ -503,12 +507,45 @@ function App() {
                 {/* SETTINGS / SAVE */}
                 {['settings', 'save'].includes(activeTab) && (
                     <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4 max-w-lg mx-auto">
-                        {activeTab === 'settings' && Object.entries(data.feeStructure).map(([k, v]) => (
-                            <div key={k} className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
-                                <label className="text-sm font-medium text-slate-300">{FEE_LABELS[k] || k}</label>
-                                <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
+                        {activeTab === 'settings' && (
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-bold text-slate-300 uppercase mb-2">Team Details</h3>
+                                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded border border-slate-800">
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="block text-xs text-slate-400 mb-1">Age Group</label>
+                                        <select className={inCls} value={data.ageGroup} onChange={e => setData(p => ({ ...p, ageGroup: e.target.value }))}>
+                                            {["8U", "9U", "10U", "11U", "12U", "13U", "14U", "15U", "16U", "18U", "22U"].map(g => <option key={g} value={g}>{g}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1 flex items-end pb-2">
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300 select-none">
+                                            <input type="checkbox" checked={data.isTier2} onChange={e => setData(p => ({ ...p, isTier2: e.target.checked }))} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-400 focus:ring-amber-400" />
+                                            Tier 2 Team
+                                        </label>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="block text-xs text-slate-400 mb-1">Head Coach</label>
+                                        <input className={inCls} value={data.headCoach} onChange={e => setData(p => ({ ...p, headCoach: e.target.value }))} placeholder="Coach Name" />
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <label className="block text-xs text-slate-400 mb-1">Manager</label>
+                                        <input className={inCls} value={data.manager} onChange={e => setData(p => ({ ...p, manager: e.target.value }))} placeholder="Manager Name" />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-xs text-slate-400 mb-1">Season Year</label>
+                                        <input className={inCls} value={data.season} onChange={e => setData(p => ({ ...p, season: e.target.value }))} placeholder="e.g. 2026" />
+                                    </div>
+                                </div>
+
+                                <h3 className="text-sm font-bold text-slate-300 uppercase mb-2 mt-4">Fee Structure</h3>
+                                {Object.entries(data.feeStructure).map(([k, v]) => (
+                                    <div key={k} className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800 mb-2">
+                                        <label className="text-sm font-medium text-slate-300">{FEE_LABELS[k] || k}</label>
+                                        <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
                         {activeTab === 'save' && (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
