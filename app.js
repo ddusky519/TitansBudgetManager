@@ -114,11 +114,20 @@ function App() {
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
-                if (!parsed.teamSponsorships) parsed.teamSponsorships = [];
-                if (!parsed.transactions) parsed.transactions = [];
-                setData(parsed);
+                // Merge with INITIAL_STATE to ensure all fields exist
+                setData(prev => ({
+                    ...INITIAL_STATE,
+                    ...parsed,
+                    // Ensure arrays are actually arrays
+                    roster: Array.isArray(parsed.roster) ? parsed.roster : [],
+                    tournaments: Array.isArray(parsed.tournaments) ? parsed.tournaments : [],
+                    expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+                    teamSponsorships: Array.isArray(parsed.teamSponsorships) ? parsed.teamSponsorships : [],
+                    transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+                    feeStructure: { ...DEFAULT_FEES, ...(parsed.feeStructure || {}) }
+                }));
             } catch (e) {
-                console.error("Failed to load local data");
+                console.error("Failed to load local data", e);
             }
         }
     }, []);
@@ -135,13 +144,13 @@ function App() {
     };
 
     const recalculateFinancials = () => {
-        const playerCount = data.roster.filter(p => p.type === 'player').length;
+        const playerCount = (data.roster || []).filter(p => p.type === 'player').length;
 
         // Budgeted Expenses
-        const tournamentTotal = data.tournaments.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0);
-        const otherExpensesTotal = data.expenses.reduce((sum, e) => sum + (parseFloat(e.cost) || 0), 0);
+        const tournamentTotal = (data.tournaments || []).reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0);
+        const otherExpensesTotal = (data.expenses || []).reduce((sum, e) => sum + (parseFloat(e.cost) || 0), 0);
 
-        const coachExpenses = data.roster.reduce((total, person) => {
+        const coachExpenses = (data.roster || []).reduce((total, person) => {
             if (person.type !== 'coach') return total;
             let cost = 0;
             if (person.packageType === 'full') cost += data.feeStructure.coachFull;
