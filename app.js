@@ -198,7 +198,12 @@ function App() {
             return total + cost;
         }, 0);
 
-        const grossSharedExpenses = tournamentTotal + otherExpensesTotal + coachExpenses + playerTitansFees;
+        // Shared Expenses (Tournaments, Coach costs, etc. - divided by players)
+        const sharedExpensesForCalc = tournamentTotal + otherExpensesTotal + coachExpenses;
+
+        // Total Budgeted Expenses (Includes everything)
+        const totalBudgetedExpenses = sharedExpensesForCalc + playerTitansFees;
+
         const directTeamSponsorship = data.teamSponsorships.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 
         // Iterative Solver
@@ -207,7 +212,7 @@ function App() {
         let playerResults = {};
 
         for (let pass = 0; pass < 3; pass++) {
-            const netSharedExpenses = grossSharedExpenses - directTeamSponsorship - currentOverflow;
+            const netSharedExpenses = sharedExpensesForCalc - directTeamSponsorship - currentOverflow;
             finalPerPlayerShare = playerCount > 0 ? Math.max(0, netSharedExpenses / playerCount) : 0;
             currentOverflow = 0;
             playerResults = {};
@@ -259,7 +264,7 @@ function App() {
 
         setFinancials({
             perPlayerShare: finalPerPlayerShare,
-            sharedExpenses: grossSharedExpenses,
+            sharedExpenses: totalBudgetedExpenses, // Display total expenses in UI
             totalCollections,
             playerDetails: playerResults,
             totalTeamSponsorship: directTeamSponsorship,
