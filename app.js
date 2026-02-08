@@ -11,12 +11,25 @@ const createIcon = (name) => {
         return (props) => React.createElement('span', props, name); // Fallback
     }
 
-    // Lucide definition: [tag, attrs, children]
-    const [tag, defaultAttrs, children] = window.lucide.icons[name];
+    // Check if the icon data is the children array (vanilla/CDN format) or full definition
+    const iconData = window.lucide.icons[name];
+
+    // Default SVG attributes for Lucide
+    const defaultAttrs = {
+        xmlns: "http://www.w3.org/2000/svg",
+        width: 24,
+        height: 24,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 2,
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+    };
 
     return ({ color = "currentColor", size = 24, strokeWidth = 2, className, ...props }) => {
         return React.createElement(
-            tag,
+            'svg',
             {
                 ...defaultAttrs,
                 width: size,
@@ -26,7 +39,7 @@ const createIcon = (name) => {
                 className: `lucide lucide-${name.toLowerCase()} ${className || ''}`,
                 ...props
             },
-            children.map(([childTag, childAttrs], index) =>
+            Array.isArray(iconData) && iconData.map(([childTag, childAttrs], index) =>
                 React.createElement(childTag, { ...childAttrs, key: index })
             )
         );
