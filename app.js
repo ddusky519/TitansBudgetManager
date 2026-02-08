@@ -307,6 +307,15 @@ function App() {
         reader.readAsText(file);
     };
 
+    // Reset Data
+    const resetData = () => {
+        if (window.confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
+            localStorage.removeItem('titanBudget_v5');
+            setData(INITIAL_STATE);
+            setNotification("Data Reset");
+        }
+    };
+
     const fmt = (v) => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(v || 0);
 
     // Styles
@@ -500,7 +509,24 @@ function App() {
                                 <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
                             </div>
                         ))}
-                        {activeTab === 'save' && <div className="grid grid-cols-2 gap-4"><button onClick={handleExport} className="p-4 border border-emerald-900 rounded text-emerald-500 font-bold">Download</button><div className="relative p-4 border border-amber-900 rounded text-amber-500 font-bold text-center">Upload<input type="file" onChange={handleImport} className="absolute inset-0 opacity-0" /></div></div>}
+                        {activeTab === 'save' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={handleExport} className="p-4 border border-emerald-900 rounded text-emerald-500 font-bold hover:bg-emerald-900/20 transition-colors">
+                                        Download Backup
+                                    </button>
+                                    <div className="relative p-4 border border-amber-900 rounded text-amber-500 font-bold text-center hover:bg-amber-900/20 transition-colors cursor-pointer">
+                                        Upload Backup
+                                        <input type="file" onChange={handleImport} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                    </div>
+                                </div>
+                                <div className="pt-4 border-t border-slate-800">
+                                    <button onClick={resetData} className="w-full p-4 border border-red-900/50 text-red-500 font-bold rounded hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2">
+                                        <Trash2 size={16} /> Reset All Data
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
