@@ -41,8 +41,18 @@
     <!-- 6. Mount the App -->
     <script type="text/babel">
         // Wait for App to be defined globally by the script above
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        if (typeof App === 'undefined') {
+            document.getElementById('root').innerHTML = '<div class="text-white p-4">Error: App component not loaded. Check console for details.</div>';
+            console.error('App component is undefined. Check app.js for errors.');
+        } else {
+            try {
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(<App />);
+            } catch (e) {
+                console.error("React Mount Error:", e);
+                document.getElementById('root').innerHTML = '<div class="text-white p-4">Application Crashed. See console.</div>';
+            }
+        }
     </script>
 
     <!-- 7. Register Offline Engine -->

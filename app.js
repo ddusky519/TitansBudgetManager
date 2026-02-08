@@ -1,15 +1,58 @@
 // --- TITAN BUDGET MANAGER LOGIC ---
 // Running in "No-Build" mode for easy PWA deployment
 
-// 1. Destructure React Hooks and Icons from global CDNs
+// 1. Destructure React Hooks
 const { useState, useEffect } = React;
-const {
-    Users, DollarSign, Calendar, Settings, Save, Upload, Trash2, Plus,
-    Download, AlertCircle, Shirt, Calculator, Handshake, PieChart,
-    ClipboardList, TrendingUp, TrendingDown, ArrowRight
-} = lucide;
 
-// 2. Default Config
+// 2. Lucide Icons Helper (Since we are using vanilla lucide via CDN)
+const createIcon = (name) => {
+    if (!window.lucide || !window.lucide.icons || !window.lucide.icons[name]) {
+        console.warn(`Icon ${name} not found in lucide global`);
+        return (props) => React.createElement('span', props, name); // Fallback
+    }
+
+    // Lucide definition: [tag, attrs, children]
+    const [tag, defaultAttrs, children] = window.lucide.icons[name];
+
+    return ({ color = "currentColor", size = 24, strokeWidth = 2, className, ...props }) => {
+        return React.createElement(
+            tag,
+            {
+                ...defaultAttrs,
+                width: size,
+                height: size,
+                stroke: color,
+                strokeWidth: strokeWidth,
+                className: `lucide lucide-${name.toLowerCase()} ${className || ''}`,
+                ...props
+            },
+            children.map(([childTag, childAttrs], index) =>
+                React.createElement(childTag, { ...childAttrs, key: index })
+            )
+        );
+    };
+};
+
+const Users = createIcon('Users');
+const DollarSign = createIcon('DollarSign');
+const Calendar = createIcon('Calendar');
+const Settings = createIcon('Settings');
+const Save = createIcon('Save');
+const Upload = createIcon('Upload');
+const Trash2 = createIcon('Trash2');
+const Plus = createIcon('Plus');
+const Download = createIcon('Download');
+const AlertCircle = createIcon('AlertCircle');
+const Shirt = createIcon('Shirt');
+const Calculator = createIcon('Calculator');
+const Handshake = createIcon('Handshake');
+const PieChart = createIcon('PieChart');
+const ClipboardList = createIcon('ClipboardList');
+const TrendingUp = createIcon('TrendingUp');
+const TrendingDown = createIcon('TrendingDown');
+const ArrowRight = createIcon('ArrowRight');
+
+// 3. Default Config
 const DEFAULT_FEES = {
     fullUniform: 850,
     partialUniform: 750,
@@ -38,7 +81,7 @@ const CATEGORIES = {
     expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Other Expense"]
 };
 
-// 3. Main Component (Global Function)
+// 4. Main Component (Global Function)
 function App() {
     const [activeTab, setActiveTab] = useState('overview');
     const [data, setData] = useState(INITIAL_STATE);
@@ -418,3 +461,6 @@ function App() {
         </div>
     );
 }
+
+// Expose App to global scope for Babel Standalone
+window.App = App;
