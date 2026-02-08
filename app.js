@@ -187,7 +187,18 @@ function App() {
             return total + cost;
         }, 0);
 
-        const grossSharedExpenses = tournamentTotal + otherExpensesTotal + coachExpenses;
+        // Titans Fees (Player Gear)
+        const playerTitansFees = (data.roster || []).reduce((total, person) => {
+            if (person.type !== 'player') return total;
+            let cost = 0;
+            if (person.packageType === 'full') cost += data.feeStructure.fullUniform;
+            if (person.packageType === 'partial') cost += data.feeStructure.partialUniform;
+            if (person.extras?.includes('thirdJersey')) cost += data.feeStructure.thirdJersey;
+            if (person.extras?.includes('cageJacket')) cost += data.feeStructure.cageJacket;
+            return total + cost;
+        }, 0);
+
+        const grossSharedExpenses = tournamentTotal + otherExpensesTotal + coachExpenses + playerTitansFees;
         const directTeamSponsorship = data.teamSponsorships.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 
         // Iterative Solver
@@ -255,7 +266,8 @@ function App() {
             totalPlayerOverflow: currentOverflow,
             actualIncome,
             actualExpense,
-            bankBalance: actualIncome - actualExpense
+            bankBalance: actualIncome - actualExpense,
+            titansFees: playerTitansFees // Added for UI display
         });
     };
 
@@ -484,14 +496,27 @@ function App() {
 
                 {/* EXPENSES / BUDGET */}
                 {activeTab === 'expenses' && (
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                            <div className="flex justify-between mb-2"><h3 className="font-bold">Tournaments</h3><button onClick={addTourney} className="text-xs bg-emerald-900 text-emerald-400 px-2 rounded">+ Add</button></div>
-                            {data.tournaments.map(t => (<div key={t.id} className="flex gap-2 mb-2"><input className={smInCls} value={t.name} onChange={e => updateTourney(t.id, 'name', e.target.value)} placeholder="Name" /><input type="number" className={`${smInCls} w-20`} value={t.cost} onChange={e => updateTourney(t.id, 'cost', e.target.value)} placeholder="$" /><button onClick={() => removeTourney(t.id)}><Trash2 size={14} /></button></div>))}
+                            <h3 className="font-bold mb-2 text-slate-300 uppercase text-xs">Calculated Expenses</h3>
+                            <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Shirt size={16} className="text-blue-400" />
+                                    <span className="text-sm font-medium text-slate-300">Titans Fees (Player Gear)</span>
+                                </div>
+                                <span className="text-sm font-bold text-slate-200">{fmt(financials.titansFees)}</span>
+                            </div>
                         </div>
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                            <div className="flex justify-between mb-2"><h3 className="font-bold">Expenses</h3><button onClick={addExp} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
-                            {data.expenses.map(e => (<div key={e.id} className="flex gap-2 mb-2"><input className={smInCls} value={e.name} onChange={v => updateExp(e.id, 'name', v.target.value)} placeholder="Item" /><input type="number" className={`${smInCls} w-20`} value={e.cost} onChange={v => updateExp(e.id, 'cost', v.target.value)} placeholder="$" /><button onClick={() => removeExp(e.id)}><Trash2 size={14} /></button></div>))}
+
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                                <div className="flex justify-between mb-2"><h3 className="font-bold">Tournaments</h3><button onClick={addTourney} className="text-xs bg-emerald-900 text-emerald-400 px-2 rounded">+ Add</button></div>
+                                {data.tournaments.map(t => (<div key={t.id} className="flex gap-2 mb-2"><input className={smInCls} value={t.name} onChange={e => updateTourney(t.id, 'name', e.target.value)} placeholder="Name" /><input type="number" className={`${smInCls} w-20`} value={t.cost} onChange={e => updateTourney(t.id, 'cost', e.target.value)} placeholder="$" /><button onClick={() => removeTourney(t.id)}><Trash2 size={14} /></button></div>))}
+                            </div>
+                            <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                                <div className="flex justify-between mb-2"><h3 className="font-bold">Expenses</h3><button onClick={addExp} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
+                                {data.expenses.map(e => (<div key={e.id} className="flex gap-2 mb-2"><input className={smInCls} value={e.name} onChange={v => updateExp(e.id, 'name', v.target.value)} placeholder="Item" /><input type="number" className={`${smInCls} w-20`} value={e.cost} onChange={v => updateExp(e.id, 'cost', v.target.value)} placeholder="$" /><button onClick={() => removeExp(e.id)}><Trash2 size={14} /></button></div>))}
+                            </div>
                         </div>
                     </div>
                 )}
