@@ -208,6 +208,9 @@ function App() {
         // Total Budgeted Expenses (Includes everything)
         const totalBudgetedExpenses = sharedExpensesForCalc + playerTitansFees;
 
+        // Total Consolidated Titans Fees (For Display)
+        const totalTitansFees = playerTitansFees + coachExpenses + extraGamesCost;
+
         const directTeamSponsorship = data.teamSponsorships.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 
         // Iterative Solver
@@ -276,8 +279,10 @@ function App() {
             actualIncome,
             actualExpense,
             bankBalance: actualIncome - actualExpense,
-            titansFees: playerTitansFees, // Added for UI display
-            extraGamesCost // Added for UI display
+            titansFees: totalTitansFees,     // Consolidated Total
+            playerTitansFees,                // Breakdown: Player Gear
+            coachTitansFees: coachExpenses,  // Breakdown: Coach Gear
+            extraGamesCost                   // Breakdown: Extra Games
         });
     };
 
