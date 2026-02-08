@@ -1,0 +1,420 @@
+// --- TITAN BUDGET MANAGER LOGIC ---
+// Running in "No-Build" mode for easy PWA deployment
+
+// 1. Destructure React Hooks and Icons from global CDNs
+const { useState, useEffect } = React;
+const {
+    Users, DollarSign, Calendar, Settings, Save, Upload, Trash2, Plus,
+    Download, AlertCircle, Shirt, Calculator, Handshake, PieChart,
+    ClipboardList, TrendingUp, TrendingDown, ArrowRight
+} = lucide;
+
+// 2. Default Config
+const DEFAULT_FEES = {
+    fullUniform: 850,
+    partialUniform: 750,
+    coachFull: 275,
+    coachPartial: 65,
+    thirdJersey: 65,
+    cageJacket: 90,
+    gamesAfter13: 150
+};
+
+const INITIAL_STATE = {
+    teamName: "18U Titans",
+    headCoach: "",
+    manager: "",
+    season: "2026",
+    roster: [],
+    tournaments: [],
+    expenses: [],
+    teamSponsorships: [],
+    transactions: [],
+    feeStructure: { ...DEFAULT_FEES }
+};
+
+const CATEGORIES = {
+    income: ["Player Fees", "Sponsorship", "Fundraising", "Other Income"],
+    expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Other Expense"]
+};
+
+// 3. Main Component (Global Function)
+function App() {
+    const [activeTab, setActiveTab] = useState('overview');
+    const [data, setData] = useState(INITIAL_STATE);
+    const [notification, setNotification] = useState(null);
+
+    // Transaction Form State
+    const [newTx, setNewTx] = useState({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        amount: '',
+        type: 'out',
+        category: 'Tournament Fee'
+    });
+
+    const [financials, setFinancials] = useState({
+        perPlayerShare: 0,
+        sharedExpenses: 0,
+        totalCollections: 0,
+        playerDetails: {},
+        totalTeamSponsorship: 0,
+        totalPlayerOverflow: 0,
+        actualIncome: 0,
+        actualExpense: 0,
+        bankBalance: 0
+    });
+
+    // Load Data
+    useEffect(() => {
+        const savedData = localStorage.getItem('titanBudget_v5');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (!parsed.teamSponsorships) parsed.teamSponsorships = [];
+                if (!parsed.transactions) parsed.transactions = [];
+                setData(parsed);
+            } catch (e) {
+                console.error("Failed to load local data");
+            }
+        }
+    }, []);
+
+    // Save & Calc
+    useEffect(() => {
+        localStorage.setItem('titanBudget_v5', JSON.stringify(data));
+        recalculateFinancials();
+    }, [data]);
+
+    const showNotification = (msg) => {
+        setNotification(msg);
+        setTimeout(() => setNotification(null), 3000);
+    };
+
+    const recalculateFinancials = () => {
+        const playerCount = data.roster.filter(p => p.type === 'player').length;
+
+        // Budgeted Expenses
+        const tournamentTotal = data.tournaments.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0);
+        const otherExpensesTotal = data.expenses.reduce((sum, e) => sum + (parseFloat(e.cost) || 0), 0);
+
+        const coachExpenses = data.roster.reduce((total, person) => {
+            if (person.type !== 'coach') return total;
+            let cost = 0;
+            if (person.packageType === 'full') cost += data.feeStructure.coachFull;
+            if (person.packageType === 'partial') cost += data.feeStructure.coachPartial;
+            if (person.extras?.includes('thirdJersey')) cost += data.feeStructure.thirdJersey;
+            if (person.extras?.includes('cageJacket')) cost += data.feeStructure.cageJacket;
+            return total + cost;
+        }, 0);
+
+        const grossSharedExpenses = tournamentTotal + otherExpensesTotal + coachExpenses;
+        const directTeamSponsorship = data.teamSponsorships.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+
+        // Iterative Solver
+        let currentOverflow = 0;
+        let finalPerPlayerShare = 0;
+        let playerResults = {};
+
+        for (let pass = 0; pass < 3; pass++) {
+            const netSharedExpenses = grossSharedExpenses - directTeamSponsorship - currentOverflow;
+            finalPerPlayerShare = playerCount > 0 ? Math.max(0, netSharedExpenses / playerCount) : 0;
+            currentOverflow = 0;
+            playerResults = {};
+
+            data.roster.forEach(person => {
+                let base = 0;
+                let extras = 0;
+                let share = 0;
+                const sponsorship = parseFloat(person.sponsorship) || 0;
+
+                if (person.type === 'player') {
+                    if (person.packageType === 'full') base = data.feeStructure.fullUniform;
+                    if (person.packageType === 'partial') base = data.feeStructure.partialUniform;
+                    share = finalPerPlayerShare;
+                } else {
+                    if (person.packageType === 'full') base = data.feeStructure.coachFull;
+                    if (person.packageType === 'partial') base = data.feeStructure.coachPartial;
+                    share = 0;
+                }
+
+                if (person.extras?.includes('thirdJersey')) extras += data.feeStructure.thirdJersey;
+                if (person.extras?.includes('cageJacket')) extras += data.feeStructure.cageJacket;
+
+                const grossLiability = (person.type === 'player') ? (base + extras + share) : 0;
+
+                let finalOwed = 0;
+                let overflow = 0;
+
+                if (person.type === 'player') {
+                    if (sponsorship >= grossLiability) {
+                        finalOwed = 0;
+                        overflow = sponsorship - grossLiability;
+                    } else {
+                        finalOwed = grossLiability - sponsorship;
+                        overflow = 0;
+                    }
+                }
+
+                playerResults[person.id] = { base, extras, share, sponsorship, overflow, finalOwed, grossLiability };
+                currentOverflow += overflow;
+            });
+        }
+
+        const totalCollections = Object.values(playerResults).reduce((sum, p) => sum + p.finalOwed, 0);
+
+        // Ledger Actuals
+        const actualIncome = data.transactions.filter(t => t.type === 'in').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        const actualExpense = data.transactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+        setFinancials({
+            perPlayerShare: finalPerPlayerShare,
+            sharedExpenses: grossSharedExpenses,
+            totalCollections,
+            playerDetails: playerResults,
+            totalTeamSponsorship: directTeamSponsorship,
+            totalPlayerOverflow: currentOverflow,
+            actualIncome,
+            actualExpense,
+            bankBalance: actualIncome - actualExpense
+        });
+    };
+
+    // Handlers
+    const updateFee = (k, v) => setData(p => ({ ...p, feeStructure: { ...p.feeStructure, [k]: parseFloat(v) || 0 } }));
+    const addPerson = (type) => setData(p => ({ ...p, roster: [...p.roster, { id: Date.now(), type, firstName: '', lastName: '', jersey: '', packageType: type === 'player' ? 'full' : 'none', extras: [], sponsorship: 0 }] }));
+    const updatePerson = (id, f, v) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, [f]: v } : i) }));
+    const removePerson = (id) => window.confirm("Remove?") && setData(p => ({ ...p, roster: p.roster.filter(i => i.id !== id) }));
+    const toggleExtra = (id, key) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, extras: i.extras?.includes(key) ? i.extras.filter(x => x !== key) : [...(i.extras || []), key] } : i) }));
+
+    const addTx = () => {
+        if (!newTx.description || !newTx.amount) return;
+        setData(p => ({ ...p, transactions: [{ ...newTx, id: Date.now(), amount: parseFloat(newTx.amount) }, ...p.transactions] }));
+        setNewTx({ ...newTx, description: '', amount: '' });
+        showNotification("Transaction Added");
+    };
+    const removeTx = (id) => window.confirm("Delete Tx?") && setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== id) }));
+
+    const addTourney = () => setData(p => ({ ...p, tournaments: [...p.tournaments, { id: Date.now(), name: '', cost: 0 }] }));
+    const updateTourney = (id, f, v) => setData(p => ({ ...p, tournaments: p.tournaments.map(t => t.id === id ? { ...t, [f]: v } : t) }));
+    const removeTourney = (id) => setData(p => ({ ...p, tournaments: p.tournaments.filter(t => t.id !== id) }));
+
+    const addExp = () => setData(p => ({ ...p, expenses: [...p.expenses, { id: Date.now(), name: '', cost: 0 }] }));
+    const updateExp = (id, f, v) => setData(p => ({ ...p, expenses: p.expenses.map(e => e.id === id ? { ...e, [f]: v } : e) }));
+    const removeExp = (id) => setData(p => ({ ...p, expenses: p.expenses.filter(e => e.id !== id) }));
+
+    const addSpon = () => setData(p => ({ ...p, teamSponsorships: [...p.teamSponsorships, { id: Date.now(), name: '', amount: 0 }] }));
+    const updateSpon = (id, f, v) => setData(p => ({ ...p, teamSponsorships: p.teamSponsorships.map(s => s.id === id ? { ...s, [f]: v } : s) }));
+    const removeSpon = (id) => setData(p => ({ ...p, teamSponsorships: p.teamSponsorships.filter(s => s.id !== id) }));
+
+    const handleExport = () => {
+        const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TitansBackup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+    };
+
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const parsed = JSON.parse(evt.target.result);
+                if (!parsed.transactions) parsed.transactions = [];
+                if (!parsed.teamSponsorships) parsed.teamSponsorships = [];
+                setData(parsed);
+                showNotification("Backup Loaded");
+            } catch (e) { alert("Invalid File"); }
+        };
+        reader.readAsText(file);
+    };
+
+    const fmt = (v) => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(v || 0);
+
+    // Styles
+    const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
+    const smInCls = "bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:ring-2 focus:ring-amber-400 outline-none";
+
+    return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
+            {/* HEADER */}
+            <div className="bg-emerald-900 border-b border-emerald-800 p-4 sticky top-0 z-50 shadow-lg">
+                <div className="max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <div className="text-center lg:text-left">
+                        <h1 className="text-xl font-bold flex items-center justify-center lg:justify-start gap-2 text-white">
+                            <span className="bg-amber-400 text-emerald-900 px-2 py-1 rounded text-sm font-black">T</span>
+                            Titan Budget
+                        </h1>
+                        <p className="text-emerald-200 text-xs mt-1">{data.teamName} | {data.season}</p>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 bg-slate-900 rounded-lg p-1 w-full lg:w-auto border border-slate-800">
+                        {[
+                            { id: 'overview', icon: PieChart, label: 'Stats' },
+                            { id: 'ledger', icon: ClipboardList, label: 'Ledger' },
+                            { id: 'roster', icon: Users, label: 'Roster' },
+                            { id: 'expenses', icon: DollarSign, label: 'Budget' },
+                            { id: 'sponsorships', icon: Handshake, label: 'Sponsors' },
+                            { id: 'settings', icon: Settings, label: 'Setup' },
+                            { id: 'save', icon: Save, label: 'Data' },
+                        ].map(tab => (
+                            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-1 sm:px-2 py-2 rounded transition-all text-[10px] sm:text-xs font-medium ${activeTab === tab.id ? 'bg-amber-400 text-slate-900 font-bold' : 'text-slate-400'}`}>
+                                <tab.icon size={14} />
+                                <span className="hidden sm:inline">{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-6xl mx-auto p-4 space-y-6">
+                {notification && <div className="fixed bottom-4 right-4 bg-amber-400 text-slate-900 px-6 py-3 rounded-lg shadow-xl z-50 font-bold border-2 border-amber-300 animate-bounce">{notification}</div>}
+
+                {/* OVERVIEW */}
+                {activeTab === 'overview' && (
+                    <div className="space-y-6">
+                        <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden">
+                            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div>
+                                    <h2 className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Bank Balance</h2>
+                                    <div className={`text-4xl sm:text-5xl font-black ${financials.bankBalance >= 0 ? 'text-white' : 'text-red-500'}`}>{fmt(financials.bankBalance)}</div>
+                                </div>
+                                <div className="text-right space-y-1">
+                                    <div className="text-emerald-400 text-xs font-bold uppercase">In: {fmt(financials.actualIncome)}</div>
+                                    <div className="text-red-400 text-xs font-bold uppercase">Out: {fmt(financials.actualExpense)}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                <div className="flex items-center gap-2 mb-2"><TrendingUp className="text-emerald-400" size={16} /><h4 className="font-bold">Income</h4></div>
+                                <div className="flex justify-between text-sm border-b border-slate-800 pb-2 mb-2">
+                                    <span className="text-slate-400">Budgeted</span><span className="text-slate-300">{fmt(financials.totalCollections + financials.totalTeamSponsorship)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Actual</span><span className="text-emerald-400 font-bold">{fmt(financials.actualIncome)}</span>
+                                </div>
+                            </div>
+                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                <div className="flex items-center gap-2 mb-2"><TrendingDown className="text-red-400" size={16} /><h4 className="font-bold">Expenses</h4></div>
+                                <div className="flex justify-between text-sm border-b border-slate-800 pb-2 mb-2">
+                                    <span className="text-slate-400">Budgeted</span><span className="text-slate-300">{fmt(financials.sharedExpenses)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Actual</span><span className="text-red-400 font-bold">{fmt(financials.actualExpense)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* LEDGER */}
+                {activeTab === 'ledger' && (
+                    <div className="space-y-4">
+                        <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                            <h3 className="text-sm font-bold text-slate-300 mb-2 uppercase">New Entry</h3>
+                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+                                <input type="date" className={inCls} value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
+                                <select className={inCls} value={newTx.type} onChange={e => setNewTx({ ...newTx, type: e.target.value, category: CATEGORIES[e.target.value === 'in' ? 'income' : 'expense'][0] })}>
+                                    <option value="in">In (+)</option><option value="out">Out (-)</option>
+                                </select>
+                                <select className={inCls} value={newTx.category} onChange={e => setNewTx({ ...newTx, category: e.target.value })}>
+                                    {CATEGORIES[newTx.type === 'in' ? 'income' : 'expense'].map(c => <option key={c}>{c}</option>)}
+                                </select>
+                                <input className={inCls} placeholder="Desc" value={newTx.description} onChange={e => setNewTx({ ...newTx, description: e.target.value })} />
+                                <div className="flex gap-2">
+                                    <input type="number" className={inCls} placeholder="$" value={newTx.amount} onChange={e => setNewTx({ ...newTx, amount: e.target.value })} />
+                                    <button onClick={addTx} className="bg-emerald-600 text-white px-3 rounded"><Plus /></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
+                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-8"></th></tr></thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
+                                        <tr key={t.id}>
+                                            <td className="p-3 text-slate-400 text-xs">{t.date}</td>
+                                            <td className="p-3"><div>{t.description}</div><div className="text-xs text-slate-500">{t.category}</div></td>
+                                            <td className={`p-3 text-right font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</td>
+                                            <td className="p-3"><button onClick={() => removeTx(t.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* ROSTER */}
+                {activeTab === 'roster' && (
+                    <div className="space-y-4">
+                        <div className="flex gap-2 justify-end">
+                            <button onClick={() => addPerson('player')} className="bg-emerald-600 text-white px-3 py-1 text-xs rounded">+ Player</button>
+                            <button onClick={() => addPerson('coach')} className="bg-slate-700 text-white px-3 py-1 text-xs rounded">+ Coach</button>
+                        </div>
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
+                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-8"></th></tr></thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {data.roster.map(p => {
+                                        const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
+                                        return (
+                                            <tr key={p.id}>
+                                                <td className="p-3">
+                                                    <div className="flex gap-1 mb-1"><input className={`${smInCls} w-20`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" /><input className={`${smInCls} w-20`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" /></div>
+                                                    <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type} #{p.jersey}</span>
+                                                </td>
+                                                <td className="p-3">
+                                                    <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
+                                                    <div className="flex flex-col"><label className="text-[10px]"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd</label></div>
+                                                </td>
+                                                <td className="p-3 text-right text-emerald-400">{p.type === 'player' ? fmt(f.share) : '-'}</td>
+                                                <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : '-'}</td>
+                                                <td className="p-3 text-right font-bold text-amber-400">{fmt(f.finalOwed)}</td>
+                                                <td className="p-3"><button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* EXPENSES / BUDGET */}
+                {activeTab === 'expenses' && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                            <div className="flex justify-between mb-2"><h3 className="font-bold">Tournaments</h3><button onClick={addTourney} className="text-xs bg-emerald-900 text-emerald-400 px-2 rounded">+ Add</button></div>
+                            {data.tournaments.map(t => (<div key={t.id} className="flex gap-2 mb-2"><input className={smInCls} value={t.name} onChange={e => updateTourney(t.id, 'name', e.target.value)} placeholder="Name" /><input type="number" className={`${smInCls} w-20`} value={t.cost} onChange={e => updateTourney(t.id, 'cost', e.target.value)} placeholder="$" /><button onClick={() => removeTourney(t.id)}><Trash2 size={14} /></button></div>))}
+                        </div>
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                            <div className="flex justify-between mb-2"><h3 className="font-bold">Expenses</h3><button onClick={addExp} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
+                            {data.expenses.map(e => (<div key={e.id} className="flex gap-2 mb-2"><input className={smInCls} value={e.name} onChange={v => updateExp(e.id, 'name', v.target.value)} placeholder="Item" /><input type="number" className={`${smInCls} w-20`} value={e.cost} onChange={v => updateExp(e.id, 'cost', v.target.value)} placeholder="$" /><button onClick={() => removeExp(e.id)}><Trash2 size={14} /></button></div>))}
+                        </div>
+                    </div>
+                )}
+
+                {/* SPONSORSHIPS */}
+                {activeTab === 'sponsorships' && (
+                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                        <div className="flex justify-between mb-4"><h3 className="font-bold">Team Sponsors</h3><button onClick={addSpon} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
+                        {data.teamSponsorships.map(s => (<div key={s.id} className="flex gap-2 mb-2"><input className={inCls} value={s.name} onChange={e => updateSpon(s.id, 'name', e.target.value)} placeholder="Company" /><input type="number" className={`${inCls} w-32`} value={s.amount} onChange={e => updateSpon(s.id, 'amount', e.target.value)} placeholder="$" /><button onClick={() => removeSpon(s.id)}><Trash2 size={16} /></button></div>))}
+                    </div>
+                )}
+
+                {/* SETTINGS / SAVE */}
+                {['settings', 'save'].includes(activeTab) && (
+                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4 max-w-lg mx-auto">
+                        {activeTab === 'settings' && Object.entries(data.feeStructure).map(([k, v]) => (<div key={k} className="flex justify-between"><label className="text-sm">{k}</label><input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} /></div>))}
+                        {activeTab === 'save' && <div className="grid grid-cols-2 gap-4"><button onClick={handleExport} className="p-4 border border-emerald-900 rounded text-emerald-500 font-bold">Download</button><div className="relative p-4 border border-amber-900 rounded text-amber-500 font-bold text-center">Upload<input type="file" onChange={handleImport} className="absolute inset-0 opacity-0" /></div></div>}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

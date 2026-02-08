@@ -1,0 +1,22 @@
+{
+    "short_name": "Titans Budget",
+    "name": "LaSalle Titans Budget Manager",
+    "description": "Team budget management, roster tracking, and financial reconciliation.",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
+    "start_url": "./index.html",
+    "display": "standalone",
+    "theme_color": "#064e3b",
+    "background_color": "#020617",
+    "orientation": "portrait"
+}
