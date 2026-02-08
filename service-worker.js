@@ -3,9 +3,10 @@ const urlsToCache = [
     './',
     './index.html',
     './manifest.json',
-    './App.js',
-    './icon-192.png',
-    './icon-512.png',
+    './app.js',
+    // Icons temporarily removed until added to project
+    // './icon-192.png',
+    // './icon-512.png',
     // External Libraries (CDNs) - Cached for offline use
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/react@18/umd/react.production.min.js',
