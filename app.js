@@ -430,12 +430,21 @@ function App() {
                                         return (
                                             <tr key={p.id}>
                                                 <td className="p-3">
-                                                    <div className="flex gap-1 mb-1"><input className={`${smInCls} w-20`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" /><input className={`${smInCls} w-20`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" /></div>
-                                                    <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type} #{p.jersey}</span>
+                                                    <div className="flex gap-1 mb-1">
+                                                        <input className={`${smInCls} w-20`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                        <input className={`${smInCls} w-20`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
+                                                        <input className={`${smInCls} w-12 text-center`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                    </div>
                                                 </td>
                                                 <td className="p-3">
                                                     <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
-                                                    <div className="flex flex-col"><label className="text-[10px]"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd</label></div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                    </div>
                                                 </td>
                                                 <td className="p-3 text-right text-emerald-400">{p.type === 'player' ? fmt(f.share) : '-'}</td>
                                                 <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : '-'}</td>
