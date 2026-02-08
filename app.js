@@ -83,6 +83,7 @@ const INITIAL_STATE = {
     headCoach: "",
     manager: "",
     season: "2026",
+    extraGames: 0,
 
     // Data
     roster: [],
@@ -272,7 +273,8 @@ function App() {
             actualIncome,
             actualExpense,
             bankBalance: actualIncome - actualExpense,
-            titansFees: playerTitansFees // Added for UI display
+            titansFees: playerTitansFees, // Added for UI display
+            extraGamesCost // Added for UI display
         });
     };
 
@@ -510,6 +512,17 @@ function App() {
                                     <span className="text-sm font-medium text-slate-300">Titans Fees (Player Gear)</span>
                                 </div>
                                 <span className="text-sm font-bold text-slate-200">{fmt(financials.titansFees)}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={16} className="text-purple-400" />
+                                    <span className="text-sm font-medium text-slate-300">Extra Games ({data.extraGames || 0})</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input type="number" min="0" className={`${smInCls} w-16 text-center`} placeholder="#" value={data.extraGames || 0} onChange={e => setData(p => ({ ...p, extraGames: parseInt(e.target.value) || 0 }))} />
+                                    <span className="text-sm font-bold text-slate-200 w-20 text-right">{fmt(financials.extraGamesCost)}</span>
+                                </div>
                             </div>
                         </div>
 

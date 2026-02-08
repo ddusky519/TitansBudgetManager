@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titans-budget-v15';
+const CACHE_NAME = 'titans-budget-v16';
 const urlsToCache = [
     './',
     './index.html',
