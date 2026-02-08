@@ -94,6 +94,16 @@ const CATEGORIES = {
     expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Other Expense"]
 };
 
+const FEE_LABELS = {
+    fullUniform: "Player Full Uniform",
+    partialUniform: "Player Partial Uniform",
+    coachFull: "Coach Full Package",
+    coachPartial: "Coach Partial Package",
+    thirdJersey: "3rd Jersey Cost",
+    cageJacket: "Cage Jacket Cost",
+    gamesAfter13: "Games After 13 Cost"
+};
+
 // 4. Main Component (Global Function)
 function App() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -428,11 +438,10 @@ function App() {
                                     {data.roster.map(p => {
                                         const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
                                         return (
-                                            <tr key={p.id}>
                                                 <td className="p-3">
-                                                    <div className="flex gap-1 mb-1">
-                                                        <input className={`${smInCls} w-20`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
-                                                        <input className={`${smInCls} w-20`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                    <div className="flex gap-1 mb-1 min-w-[160px]">
+                                                        <input className={`${smInCls} flex-1 min-w-0`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                        <input className={`${smInCls} flex-1 min-w-0`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
@@ -451,45 +460,50 @@ function App() {
                                                 <td className="p-3 text-right font-bold text-amber-400">{fmt(f.finalOwed)}</td>
                                                 <td className="p-3"><button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
                                             </tr>
-                                        )
+                                )
                                     })}
-                                </tbody>
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
+                    </div>
                     </div>
                 )}
 
-                {/* EXPENSES / BUDGET */}
-                {activeTab === 'expenses' && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                            <div className="flex justify-between mb-2"><h3 className="font-bold">Tournaments</h3><button onClick={addTourney} className="text-xs bg-emerald-900 text-emerald-400 px-2 rounded">+ Add</button></div>
-                            {data.tournaments.map(t => (<div key={t.id} className="flex gap-2 mb-2"><input className={smInCls} value={t.name} onChange={e => updateTourney(t.id, 'name', e.target.value)} placeholder="Name" /><input type="number" className={`${smInCls} w-20`} value={t.cost} onChange={e => updateTourney(t.id, 'cost', e.target.value)} placeholder="$" /><button onClick={() => removeTourney(t.id)}><Trash2 size={14} /></button></div>))}
-                        </div>
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                            <div className="flex justify-between mb-2"><h3 className="font-bold">Expenses</h3><button onClick={addExp} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
-                            {data.expenses.map(e => (<div key={e.id} className="flex gap-2 mb-2"><input className={smInCls} value={e.name} onChange={v => updateExp(e.id, 'name', v.target.value)} placeholder="Item" /><input type="number" className={`${smInCls} w-20`} value={e.cost} onChange={v => updateExp(e.id, 'cost', v.target.value)} placeholder="$" /><button onClick={() => removeExp(e.id)}><Trash2 size={14} /></button></div>))}
-                        </div>
-                    </div>
-                )}
-
-                {/* SPONSORSHIPS */}
-                {activeTab === 'sponsorships' && (
+            {/* EXPENSES / BUDGET */}
+            {activeTab === 'expenses' && (
+                <div className="grid md:grid-cols-2 gap-4">
                     <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                        <div className="flex justify-between mb-4"><h3 className="font-bold">Team Sponsors</h3><button onClick={addSpon} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
-                        {data.teamSponsorships.map(s => (<div key={s.id} className="flex gap-2 mb-2"><input className={inCls} value={s.name} onChange={e => updateSpon(s.id, 'name', e.target.value)} placeholder="Company" /><input type="number" className={`${inCls} w-32`} value={s.amount} onChange={e => updateSpon(s.id, 'amount', e.target.value)} placeholder="$" /><button onClick={() => removeSpon(s.id)}><Trash2 size={16} /></button></div>))}
+                        <div className="flex justify-between mb-2"><h3 className="font-bold">Tournaments</h3><button onClick={addTourney} className="text-xs bg-emerald-900 text-emerald-400 px-2 rounded">+ Add</button></div>
+                        {data.tournaments.map(t => (<div key={t.id} className="flex gap-2 mb-2"><input className={smInCls} value={t.name} onChange={e => updateTourney(t.id, 'name', e.target.value)} placeholder="Name" /><input type="number" className={`${smInCls} w-20`} value={t.cost} onChange={e => updateTourney(t.id, 'cost', e.target.value)} placeholder="$" /><button onClick={() => removeTourney(t.id)}><Trash2 size={14} /></button></div>))}
                     </div>
-                )}
+                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                        <div className="flex justify-between mb-2"><h3 className="font-bold">Expenses</h3><button onClick={addExp} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
+                        {data.expenses.map(e => (<div key={e.id} className="flex gap-2 mb-2"><input className={smInCls} value={e.name} onChange={v => updateExp(e.id, 'name', v.target.value)} placeholder="Item" /><input type="number" className={`${smInCls} w-20`} value={e.cost} onChange={v => updateExp(e.id, 'cost', v.target.value)} placeholder="$" /><button onClick={() => removeExp(e.id)}><Trash2 size={14} /></button></div>))}
+                    </div>
+                </div>
+            )}
 
-                {/* SETTINGS / SAVE */}
-                {['settings', 'save'].includes(activeTab) && (
-                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4 max-w-lg mx-auto">
-                        {activeTab === 'settings' && Object.entries(data.feeStructure).map(([k, v]) => (<div key={k} className="flex justify-between"><label className="text-sm">{k}</label><input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} /></div>))}
-                        {activeTab === 'save' && <div className="grid grid-cols-2 gap-4"><button onClick={handleExport} className="p-4 border border-emerald-900 rounded text-emerald-500 font-bold">Download</button><div className="relative p-4 border border-amber-900 rounded text-amber-500 font-bold text-center">Upload<input type="file" onChange={handleImport} className="absolute inset-0 opacity-0" /></div></div>}
-                    </div>
-                )}
-            </div>
+            {/* SPONSORSHIPS */}
+            {activeTab === 'sponsorships' && (
+                <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                    <div className="flex justify-between mb-4"><h3 className="font-bold">Team Sponsors</h3><button onClick={addSpon} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
+                    {data.teamSponsorships.map(s => (<div key={s.id} className="flex gap-2 mb-2"><input className={inCls} value={s.name} onChange={e => updateSpon(s.id, 'name', e.target.value)} placeholder="Company" /><input type="number" className={`${inCls} w-32`} value={s.amount} onChange={e => updateSpon(s.id, 'amount', e.target.value)} placeholder="$" /><button onClick={() => removeSpon(s.id)}><Trash2 size={16} /></button></div>))}
+                </div>
+            )}
+
+            {/* SETTINGS / SAVE */}
+            {['settings', 'save'].includes(activeTab) && (
+                <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4 max-w-lg mx-auto">
+                    {activeTab === 'settings' && Object.entries(data.feeStructure).map(([k, v]) => (
+                        <div key={k} className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
+                            <label className="text-sm font-medium text-slate-300">{FEE_LABELS[k] || k}</label>
+                            <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
+                        </div>
+                    ))}
+                    {activeTab === 'save' && <div className="grid grid-cols-2 gap-4"><button onClick={handleExport} className="p-4 border border-emerald-900 rounded text-emerald-500 font-bold">Download</button><div className="relative p-4 border border-amber-900 rounded text-amber-500 font-bold text-center">Upload<input type="file" onChange={handleImport} className="absolute inset-0 opacity-0" /></div></div>}
+                </div>
+            )}
         </div>
+        </div >
     );
 }
 
