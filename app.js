@@ -362,7 +362,7 @@ function App() {
         };
 
         // Header
-        doc.setFillColor(6, 78, 59); // Emerald 900
+        doc.setFillColor(34, 139, 34); // Forest Green
         doc.rect(0, 0, pageWidth, 40, 'F');
         doc.setTextColor(255, 255, 255);
 
@@ -390,7 +390,7 @@ function App() {
             head: [['Item', 'Amount']],
             body: feeRows,
             theme: 'striped',
-            headStyles: { fillColor: [217, 119, 6] }, // Amber 600
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
             didParseCell: (data) => {
                 if (data.row.index === feeRows.length - 1 && data.section === 'body') {
@@ -420,7 +420,7 @@ function App() {
             head: [['Item', 'Cost']],
             body: expenseRows,
             theme: 'striped',
-            headStyles: { fillColor: [6, 78, 59] }, // Emerald 900
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: { 1: { halign: 'right' } },
             didParseCell: (data) => {
                 if (data.row.index === expenseRows.length - 1 && data.section === 'body') {
@@ -457,7 +457,7 @@ function App() {
             head: [['Player', '#', 'Package', 'Extras', 'Sponsor', 'Total Owed']],
             body: playerRows,
             theme: 'grid',
-            headStyles: { fillColor: [15, 23, 42] }, // Slate 900
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: {
                 3: { halign: 'right' },
                 4: { halign: 'right' },
@@ -487,7 +487,7 @@ function App() {
         };
 
         // Header
-        doc.setFillColor(6, 78, 59); // Emerald 900
+        doc.setFillColor(34, 139, 34); // Forest Green
         doc.rect(0, 0, pageWidth, 40, 'F');
         doc.setTextColor(255, 255, 255);
 
@@ -515,7 +515,7 @@ function App() {
             head: [['Item', 'Amount']],
             body: summaryRows,
             theme: 'striped',
-            headStyles: { fillColor: [6, 78, 59] }, // Emerald 900
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
             didParseCell: (data) => {
                 if (data.row.index === summaryRows.length - 1 && data.section === 'body') {
@@ -549,7 +549,7 @@ function App() {
             head: [['Calculation', 'Value']],
             body: refundRows,
             theme: 'grid',
-            headStyles: { fillColor: [217, 119, 6] }, // Amber 600
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
             didParseCell: (data) => {
                 if (data.row.index === 2 && data.section === 'body') {
@@ -585,7 +585,7 @@ function App() {
             head: [['Date', 'Description', 'Category', 'Type', 'Amount']],
             body: txRows,
             theme: 'striped',
-            headStyles: { fillColor: [15, 23, 42] }, // Slate 900
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: {
                 3: { halign: 'center' },
                 4: { halign: 'right' }
