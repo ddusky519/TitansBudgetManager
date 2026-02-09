@@ -487,7 +487,7 @@ function App() {
         };
 
         // Header
-        doc.setFillColor(15, 23, 42); // Slate 900
+        doc.setFillColor(6, 78, 59); // Emerald 900
         doc.rect(0, 0, pageWidth, 40, 'F');
         doc.setTextColor(255, 255, 255);
 
@@ -515,7 +515,7 @@ function App() {
             head: [['Item', 'Amount']],
             body: summaryRows,
             theme: 'striped',
-            headStyles: { fillColor: [15, 23, 42] }, // Slate 900
+            headStyles: { fillColor: [6, 78, 59] }, // Emerald 900
             columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
             didParseCell: (data) => {
                 if (data.row.index === summaryRows.length - 1 && data.section === 'body') {
@@ -585,7 +585,7 @@ function App() {
             head: [['Date', 'Description', 'Category', 'Type', 'Amount']],
             body: txRows,
             theme: 'striped',
-            headStyles: { fillColor: [71, 85, 105] }, // Slate 600
+            headStyles: { fillColor: [15, 23, 42] }, // Slate 900
             columnStyles: {
                 3: { halign: 'center' },
                 4: { halign: 'right' }
