@@ -468,6 +468,139 @@ function App() {
         doc.save(`TitansBudget_${data.season}_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
+    // Ledger PDF
+    const generateLedgerPDF = () => {
+        if (!window.jspdf) {
+            alert("PDF Library not loaded. Please refresh.");
+            return;
+        }
+
+        const doc = new window.jspdf.jsPDF();
+        const pageWidth = doc.internal.pageSize.width;
+
+        // Helper
+        const centerText = (text, y, size = 12, style = 'normal') => {
+            doc.setFontSize(size);
+            doc.setFont("helvetica", style);
+            const textWidth = doc.getStringUnitWidth(text) * size / doc.internal.scaleFactor;
+            doc.text(text, (pageWidth - textWidth) / 2, y);
+        };
+
+        // Header
+        doc.setFillColor(15, 23, 42); // Slate 900
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+
+        centerText((data.ageGroup || data.headCoach) ? `${data.ageGroup} ${data.isTier2 ? 'T2' : ''} - ${data.headCoach}` : 'Titan Budget', 20, 22, 'bold');
+        centerText(`${data.season} Financial Ledger`, 30, 14);
+
+        doc.setTextColor(0, 0, 0);
+
+        let finalY = 50;
+
+        // 1. Financial Summary
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Financial Summary", 14, finalY);
+        finalY += 8;
+
+        const summaryRows = [
+            ["Total Actual Income", fmt(financials.actualIncome)],
+            ["Total Actual Expenses", fmt(financials.actualExpense)],
+            ["NET BANK BALANCE", fmt(financials.bankBalance)]
+        ];
+
+        doc.autoTable({
+            startY: finalY,
+            head: [['Item', 'Amount']],
+            body: summaryRows,
+            theme: 'striped',
+            headStyles: { fillColor: [15, 23, 42] }, // Slate 900
+            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+            didParseCell: (data) => {
+                if (data.row.index === summaryRows.length - 1 && data.section === 'body') {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.textColor = financials.bankBalance >= 0 ? [16, 185, 129] : [239, 68, 68]; // Emerald vs Red
+                }
+            }
+        });
+
+        finalY = doc.lastAutoTable.finalY + 15;
+
+        // 2. Refund Calculation
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("End of Season Refund Calculation", 14, finalY);
+        finalY += 8;
+
+        // Count ONLY players, not coaches
+        const playerCount = data.roster.filter(p => p.type === 'player').length;
+        const refundPerPlayer = playerCount > 0 ? financials.bankBalance / playerCount : 0;
+
+        const refundRows = [
+            ["Net Bank Balance", fmt(financials.bankBalance)],
+            ["Number of Players", playerCount],
+            ["PROPOSED REFUND PER PLAYER", fmt(refundPerPlayer)],
+            ["Projected Final Balance", fmt(0)]
+        ];
+
+        doc.autoTable({
+            startY: finalY,
+            head: [['Calculation', 'Value']],
+            body: refundRows,
+            theme: 'grid',
+            headStyles: { fillColor: [217, 119, 6] }, // Amber 600
+            columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+            didParseCell: (data) => {
+                if (data.row.index === 2 && data.section === 'body') {
+                    data.cell.styles.textColor = [16, 185, 129]; // Emerald
+                    data.cell.styles.fontSize = 11;
+                }
+            }
+        });
+
+        // Page Break for Transactions
+        doc.addPage();
+        finalY = 20;
+
+        // 3. Transactions Log
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Transaction History", 14, finalY);
+        finalY += 8;
+
+        // Sort Newest First
+        const sortedTx = [...data.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const txRows = sortedTx.map(t => [
+            t.date,
+            t.description,
+            t.category,
+            t.type === 'in' ? '+' : '-',
+            fmt(t.amount)
+        ]);
+
+        doc.autoTable({
+            startY: finalY,
+            head: [['Date', 'Description', 'Category', 'Type', 'Amount']],
+            body: txRows,
+            theme: 'striped',
+            headStyles: { fillColor: [71, 85, 105] }, // Slate 600
+            columnStyles: {
+                3: { halign: 'center' },
+                4: { halign: 'right' }
+            },
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 4) {
+                    const type = sortedTx[data.row.index].type;
+                    data.cell.styles.textColor = type === 'in' ? [16, 185, 129] : [239, 68, 68];
+                }
+            }
+        });
+
+        doc.save(`TitansLedger_${data.season}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
+
     // Reset Data
     const resetData = () => {
         if (window.confirm("Are you sure you want to delete ALL data? This cannot be undone.")) {
@@ -560,7 +693,12 @@ function App() {
                 {activeTab === 'ledger' && (
                     <div className="space-y-4">
                         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                            <h3 className="text-sm font-bold text-slate-300 mb-2 uppercase">New Entry</h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-sm font-bold text-slate-300 uppercase">New Entry</h3>
+                                <button onClick={generateLedgerPDF} className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded border border-slate-700 transition-colors">
+                                    <Download size={12} /> PDF Report
+                                </button>
+                            </div>
                             <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
                                 <input type="date" className={inCls} value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
                                 <select className={inCls} value={newTx.type} onChange={e => setNewTx({ ...newTx, type: e.target.value, category: CATEGORIES[e.target.value === 'in' ? 'income' : 'expense'][0] })}>
