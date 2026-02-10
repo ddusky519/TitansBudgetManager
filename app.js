@@ -736,6 +736,33 @@ function App() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* SCOREBOARD */}
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                            <h3 className="text-sm font-bold text-slate-300 uppercase mb-3">Player Fee Scoreboard</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                {data.roster.filter(p => p.type === 'player').map(p => {
+                                    const f = financials.playerDetails[p.id] || { paid: 0, outstanding: 0, finalOwed: 0 };
+                                    const isPaidOff = f.outstanding <= 0.01;
+                                    return (
+                                        <div key={p.id} className={`p-2 rounded border ${isPaidOff ? 'bg-emerald-900/30 border-emerald-800' : 'bg-slate-950 border-slate-800'}`}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-bold text-xs truncate">{p.firstName} {p.lastName.charAt(0)}.</span>
+                                                <span className={`text-[10px] px-1 rounded ${isPaidOff ? 'bg-emerald-500 text-slate-900' : 'bg-red-500 text-white'}`}>{isPaidOff ? 'PAID' : 'DUE'}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-slate-500">Paid:</span>
+                                                <span className="text-emerald-400">{fmt(f.paid)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs font-bold mt-1 pt-1 border-t border-slate-800/50">
+                                                <span className="text-slate-400">Owed:</span>
+                                                <span className={isPaidOff ? 'text-slate-400' : 'text-red-400'}>{fmt(f.outstanding)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 )}
 
