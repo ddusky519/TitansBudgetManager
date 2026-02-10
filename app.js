@@ -229,6 +229,7 @@ function App() {
                 let extras = 0;
                 let share = 0;
                 const sponsorship = parseFloat(person.sponsorship) || 0;
+                const credit = parseFloat(person.credit) || 0;
 
                 if (person.type === 'player') {
                     if (person.packageType === 'full') base = data.feeStructure.fullUniform;
@@ -249,16 +250,17 @@ function App() {
                 let overflow = 0;
 
                 if (person.type === 'player') {
-                    if (sponsorship >= grossLiability) {
+                    const totalReductions = sponsorship + credit;
+                    if (totalReductions >= grossLiability) {
                         finalOwed = 0;
-                        overflow = sponsorship - grossLiability;
+                        overflow = totalReductions - grossLiability;
                     } else {
-                        finalOwed = grossLiability - sponsorship;
+                        finalOwed = grossLiability - totalReductions;
                         overflow = 0;
                     }
                 }
 
-                playerResults[person.id] = { base, extras, share, sponsorship, overflow, finalOwed, grossLiability };
+                playerResults[person.id] = { base, extras, share, sponsorship, credit, overflow, finalOwed, grossLiability };
                 currentOverflow += overflow;
             });
         }
@@ -288,7 +290,7 @@ function App() {
 
     // Handlers
     const updateFee = (k, v) => setData(p => ({ ...p, feeStructure: { ...p.feeStructure, [k]: parseFloat(v) || 0 } }));
-    const addPerson = (type) => setData(p => ({ ...p, roster: [...p.roster, { id: Date.now(), type, firstName: '', lastName: '', jersey: '', packageType: type === 'player' ? 'full' : 'none', extras: [], sponsorship: 0 }] }));
+    const addPerson = (type) => setData(p => ({ ...p, roster: [...p.roster, { id: Date.now(), type, firstName: '', lastName: '', jersey: '', packageType: type === 'player' ? 'full' : 'none', extras: [], sponsorship: 0, credit: 0 }] }));
     const updatePerson = (id, f, v) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, [f]: v } : i) }));
     const removePerson = (id) => window.confirm("Remove?") && setData(p => ({ ...p, roster: p.roster.filter(i => i.id !== id) }));
     const toggleExtra = (id, key) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, extras: i.extras?.includes(key) ? i.extras.filter(x => x !== key) : [...(i.extras || []), key] } : i) }));
@@ -741,7 +743,7 @@ function App() {
                         </div>
                         <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
                             <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-8"></th></tr></thead>
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-8"></th></tr></thead>
                                 <tbody className="divide-y divide-slate-800">
                                     {data.roster.map(p => {
                                         const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
@@ -766,6 +768,7 @@ function App() {
                                                 </td>
                                                 <td className="p-3 text-right text-emerald-400">{p.type === 'player' ? fmt(f.share) : '-'}</td>
                                                 <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : '-'}</td>
+                                                <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" /> : '-'}</td>
                                                 <td className="p-3 text-right font-bold text-amber-400">{fmt(f.finalOwed)}</td>
                                                 <td className="p-3"><button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
                                             </tr>
