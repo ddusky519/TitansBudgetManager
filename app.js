@@ -268,7 +268,7 @@ function App() {
 
                 // Calculate Paid (from linked transactions)
                 const paid = data.transactions
-                    .filter(t => t.type === 'in' && t.playerId === person.id)
+                    .filter(t => t.type === 'in' && t.playerId == person.id)
                     .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
                 const outstanding = Math.max(0, finalOwed - paid);
@@ -312,12 +312,15 @@ function App() {
         if (!newTx.description || !newTx.amount) return;
         // If linked to player, append Name to Description for clarity in simple lists
         let finalDesc = newTx.description;
-        if (newTx.playerId) {
-            const p = data.roster.find(r => r.id == newTx.playerId);
+        // ensure playerId is stored as number if it exists
+        const pId = newTx.playerId ? parseFloat(newTx.playerId) : '';
+
+        if (pId) {
+            const p = data.roster.find(r => r.id == pId);
             if (p) finalDesc = `${p.firstName} ${p.lastName} - ${finalDesc}`;
         }
 
-        setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount) }, ...p.transactions] }));
+        setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount), playerId: pId }, ...p.transactions] }));
         setNewTx({ ...newTx, description: '', amount: '', playerId: '' }); // Reset
         showNotification("Transaction Added");
     };
