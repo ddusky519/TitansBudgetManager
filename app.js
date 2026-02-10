@@ -121,8 +121,10 @@ function App() {
         description: '',
         amount: '',
         type: 'out',
-        category: 'Tournament Fee'
+        category: 'Tournament Fee',
+        playerId: '' // Linked Player
     });
+    const [selectedTx, setSelectedTx] = useState([]);
 
     const [financials, setFinancials] = useState({
         perPlayerShare: 0,
@@ -133,7 +135,11 @@ function App() {
         totalPlayerOverflow: 0,
         actualIncome: 0,
         actualExpense: 0,
-        bankBalance: 0
+        bankBalance: 0,
+        titansFees: 0,
+        playerTitansFees: 0,
+        coachTitansFees: 0,
+        extraGamesCost: 0
     });
 
     // Load Data
@@ -260,7 +266,14 @@ function App() {
                     }
                 }
 
-                playerResults[person.id] = { base, extras, share, sponsorship, credit, overflow, finalOwed, grossLiability };
+                // Calculate Paid (from linked transactions)
+                const paid = data.transactions
+                    .filter(t => t.type === 'in' && t.playerId === person.id)
+                    .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+                const outstanding = Math.max(0, finalOwed - paid);
+
+                playerResults[person.id] = { base, extras, share, sponsorship, credit, overflow, finalOwed, grossLiability, paid, outstanding };
                 currentOverflow += overflow;
             });
         }
@@ -297,11 +310,30 @@ function App() {
 
     const addTx = () => {
         if (!newTx.description || !newTx.amount) return;
-        setData(p => ({ ...p, transactions: [{ ...newTx, id: Date.now(), amount: parseFloat(newTx.amount) }, ...p.transactions] }));
-        setNewTx({ ...newTx, description: '', amount: '' });
+        // If linked to player, append Name to Description for clarity in simple lists
+        let finalDesc = newTx.description;
+        if (newTx.playerId) {
+            const p = data.roster.find(r => r.id == newTx.playerId);
+            if (p) finalDesc = `${p.firstName} ${p.lastName} - ${finalDesc}`;
+        }
+
+        setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount) }, ...p.transactions] }));
+        setNewTx({ ...newTx, description: '', amount: '', playerId: '' }); // Reset
         showNotification("Transaction Added");
     };
     const removeTx = (id) => window.confirm("Delete Tx?") && setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== id) }));
+
+    // Bulk Actions
+    const toggleTxSelection = (id) => {
+        setSelectedTx(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+    const deleteSelectedTx = () => {
+        if (window.confirm(`Delete ${selectedTx.length} transactions?`)) {
+            setData(p => ({ ...p, transactions: p.transactions.filter(t => !selectedTx.includes(t.id)) }));
+            setSelectedTx([]);
+            showNotification("Transactions Deleted");
+        }
+    };
 
     const addTourney = () => setData(p => ({ ...p, tournaments: [...p.tournaments, { id: Date.now(), name: '', cost: 0 }] }));
     const updateTourney = (id, f, v) => setData(p => ({ ...p, tournaments: p.tournaments.map(t => t.id === id ? { ...t, [f]: v } : t) }));
@@ -696,18 +728,67 @@ function App() {
                 {/* LEDGER */}
                 {activeTab === 'ledger' && (
                     <div className="space-y-4">
+                        {/* SCOREBOARD */}
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                            <h3 className="text-sm font-bold text-slate-300 uppercase mb-3">Player Fee Scoreboard</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                {data.roster.filter(p => p.type === 'player').map(p => {
+                                    const f = financials.playerDetails[p.id] || { paid: 0, outstanding: 0, finalOwed: 0 };
+                                    const isPaidOff = f.outstanding <= 0.01;
+                                    return (
+                                        <div key={p.id} className={`p-2 rounded border ${isPaidOff ? 'bg-emerald-900/30 border-emerald-800' : 'bg-slate-950 border-slate-800'}`}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-bold text-xs truncate">{p.firstName} {p.lastName.charAt(0)}.</span>
+                                                <span className={`text-[10px] px-1 rounded ${isPaidOff ? 'bg-emerald-500 text-slate-900' : 'bg-red-500 text-white'}`}>{isPaidOff ? 'PAID' : 'DUE'}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-slate-500">Paid:</span>
+                                                <span className="text-emerald-400">{fmt(f.paid)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs font-bold mt-1 pt-1 border-t border-slate-800/50">
+                                                <span className="text-slate-400">Owed:</span>
+                                                <span className={isPaidOff ? 'text-slate-400' : 'text-red-400'}>{fmt(f.outstanding)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* NEW TRANSACTION & ACTIONS */}
                         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-sm font-bold text-slate-300 uppercase">New Entry</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-slate-300 uppercase">Transactions</h3>
+                                    {selectedTx.length > 0 && (
+                                        <button onClick={deleteSelectedTx} className="bg-red-600 text-white text-[10px] px-2 py-1 rounded flex items-center gap-1 animate-pulse">
+                                            <Trash2 size={10} /> Delete ({selectedTx.length})
+                                        </button>
+                                    )}
+                                </div>
                                 <button onClick={generateLedgerPDF} className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded border border-slate-700 transition-colors">
                                     <Download size={12} /> PDF Report
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+
+                            {/* ADD FORM */}
+                            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 mb-4 p-3 bg-slate-950 rounded border border-slate-800">
                                 <input type="date" className={inCls} value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
                                 <select className={inCls} value={newTx.type} onChange={e => setNewTx({ ...newTx, type: e.target.value, category: CATEGORIES[e.target.value === 'in' ? 'income' : 'expense'][0] })}>
                                     <option value="in">In (+)</option><option value="out">Out (-)</option>
                                 </select>
+
+                                {newTx.type === 'in' ? (
+                                    <select className={inCls} value={newTx.playerId || ''} onChange={e => setNewTx({ ...newTx, playerId: e.target.value })}>
+                                        <option value="">-- Team Income --</option>
+                                        {data.roster.filter(p => p.type === 'player').map(p => (
+                                            <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="text-xs text-slate-500 flex items-center justify-center italic">Team Expense</div>
+                                )}
+
                                 <select className={inCls} value={newTx.category} onChange={e => setNewTx({ ...newTx, category: e.target.value })}>
                                     {CATEGORIES[newTx.type === 'in' ? 'income' : 'expense'].map(c => <option key={c}>{c}</option>)}
                                 </select>
@@ -717,21 +798,24 @@ function App() {
                                     <button onClick={addTx} className="bg-emerald-600 text-white px-3 rounded"><Plus /></button>
                                 </div>
                             </div>
-                        </div>
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
-                            <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-8"></th></tr></thead>
-                                <tbody className="divide-y divide-slate-800">
-                                    {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
-                                        <tr key={t.id}>
-                                            <td className="p-3 text-slate-400 text-xs">{t.date}</td>
-                                            <td className="p-3"><div>{t.description}</div><div className="text-xs text-slate-500">{t.category}</div></td>
-                                            <td className={`p-3 text-right font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</td>
-                                            <td className="p-3"><button onClick={() => removeTx(t.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+
+                            {/* LIST */}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-8"></th></tr></thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
+                                            <tr key={t.id} className={selectedTx.includes(t.id) ? 'bg-slate-800/50' : ''}>
+                                                <td className="p-3 text-center"><input type="checkbox" checked={selectedTx.includes(t.id)} onChange={() => toggleTxSelection(t.id)} /></td>
+                                                <td className="p-3 text-slate-400 text-xs">{t.date}</td>
+                                                <td className="p-3"><div>{t.description}</div><div className="text-xs text-slate-500">{t.category}</div></td>
+                                                <td className={`p-3 text-right font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</td>
+                                                <td className="p-3"><button onClick={() => removeTx(t.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )}
