@@ -443,27 +443,29 @@ function App() {
         finalY += 12;
 
         const playerRows = data.roster.filter(p => p.type === 'player').map(p => {
-            const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0, base: 0, extras: 0, sponsorship: 0 };
+            const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0, base: 0, extras: 0, sponsorship: 0, credit: 0 };
             return [
                 `${p.firstName} ${p.lastName}`,
                 `#${p.jersey}`,
                 p.packageType === 'full' ? 'Full ($850)' : 'Part ($750)',
                 fmt(f.extras),
                 fmt(f.sponsorship),
+                fmt(f.credit),
                 fmt(f.finalOwed)
             ];
         });
 
         doc.autoTable({
             startY: finalY,
-            head: [['Player', '#', 'Package', 'Extras', 'Sponsor', 'Total Owed']],
+            head: [['Player', '#', 'Package', 'Extras', 'Sponsor', 'Credit', 'Total Owed']],
             body: playerRows,
             theme: 'grid',
             headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
             columnStyles: {
                 3: { halign: 'right' },
                 4: { halign: 'right' },
-                5: { halign: 'right', fontStyle: 'bold', textColor: [217, 119, 6] }
+                5: { halign: 'right' },
+                6: { halign: 'right', fontStyle: 'bold', textColor: [217, 119, 6] }
             }
         });
 
