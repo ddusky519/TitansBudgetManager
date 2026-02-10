@@ -268,7 +268,7 @@ function App() {
 
                 // Calculate Paid (from linked transactions)
                 const paid = data.transactions
-                    .filter(t => t.type === 'in' && t.playerId == person.id)
+                    .filter(t => t.type === 'in' && t.playerId == person.id) // Loose equality for string/number mismatch
                     .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
                 const outstanding = Math.max(0, finalOwed - paid);
@@ -279,10 +279,14 @@ function App() {
         }
 
         const totalCollections = Object.values(playerResults).reduce((sum, p) => sum + p.finalOwed, 0);
+        const totalPlayerSponsorship = data.roster.reduce((sum, p) => sum + (parseFloat(p.sponsorship) || 0), 0);
 
         // Ledger Actuals
-        const actualIncome = data.transactions.filter(t => t.type === 'in').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        const transactionIncome = data.transactions.filter(t => t.type === 'in').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         const actualExpense = data.transactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+        // Effective Income includes Transactions + Sponsorships (Money in hand)
+        const totalEffectiveIncome = transactionIncome + directTeamSponsorship + totalPlayerSponsorship;
 
         setFinancials({
             perPlayerShare: finalPerPlayerShare,
@@ -290,10 +294,12 @@ function App() {
             totalCollections,
             playerDetails: playerResults,
             totalTeamSponsorship: directTeamSponsorship,
+            totalPlayerSponsorship,
             totalPlayerOverflow: currentOverflow,
-            actualIncome,
+            transactionIncome, // Renamed for clarity, was actualIncome
+            actualIncome: totalEffectiveIncome, // Now acts as Total Assets
             actualExpense,
-            bankBalance: actualIncome - actualExpense,
+            bankBalance: totalEffectiveIncome - actualExpense,
             titansFees: totalTitansFees,     // Consolidated Total
             playerTitansFees,                // Breakdown: Player Gear
             coachTitansFees: coachExpenses,  // Breakdown: Coach Gear
@@ -544,7 +550,10 @@ function App() {
         finalY += 8;
 
         const summaryRows = [
-            ["Total Actual Income", fmt(financials.actualIncome)],
+            ["Transactions (Income)", fmt(financials.transactionIncome)],
+            ["Team Sponsorships", fmt(financials.totalTeamSponsorship)],
+            ["Player Sponsorships", fmt(financials.totalPlayerSponsorship)],
+            ["TOTAL INCOME / ASSETS", fmt(financials.actualIncome)],
             ["Total Actual Expenses", fmt(financials.actualExpense)],
             ["NET BANK BALANCE", fmt(financials.bankBalance)]
         ];
@@ -707,12 +716,14 @@ function App() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                                <div className="flex items-center gap-2 mb-2"><TrendingUp className="text-emerald-400" size={16} /><h4 className="font-bold">Income</h4></div>
-                                <div className="flex justify-between text-sm border-b border-slate-800 pb-2 mb-2">
-                                    <span className="text-slate-400">Budgeted</span><span className="text-slate-300">{fmt(financials.totalCollections + financials.totalTeamSponsorship)}</span>
+                                <div className="flex items-center gap-2 mb-2"><TrendingUp className="text-emerald-400" size={16} /><h4 className="font-bold">Income & Assets</h4></div>
+                                <div className="space-y-1 mb-2 border-b border-slate-800 pb-2">
+                                    <div className="flex justify-between text-xs text-slate-400"><span>Transactions (In)</span><span>{fmt(financials.transactionIncome)}</span></div>
+                                    <div className="flex justify-between text-xs text-slate-400"><span>Team Sponsors</span><span>{fmt(financials.totalTeamSponsorship)}</span></div>
+                                    <div className="flex justify-between text-xs text-slate-400"><span>Player Sponsors</span><span>{fmt(financials.totalPlayerSponsorship)}</span></div>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400">Actual</span><span className="text-emerald-400 font-bold">{fmt(financials.actualIncome)}</span>
+                                    <span className="text-slate-300">Total Available</span><span className="text-emerald-400 font-bold">{fmt(financials.actualIncome)}</span>
                                 </div>
                             </div>
                             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
