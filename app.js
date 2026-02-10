@@ -280,13 +280,14 @@ function App() {
 
         const totalCollections = Object.values(playerResults).reduce((sum, p) => sum + p.finalOwed, 0);
         const totalPlayerSponsorship = data.roster.reduce((sum, p) => sum + (parseFloat(p.sponsorship) || 0), 0);
+        const totalPlayerCredits = data.roster.reduce((sum, p) => sum + (parseFloat(p.credit) || 0), 0);
 
         // Ledger Actuals
         const transactionIncome = data.transactions.filter(t => t.type === 'in').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         const actualExpense = data.transactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
-        // Effective Income includes Transactions + Sponsorships (Money in hand)
-        const totalEffectiveIncome = transactionIncome + directTeamSponsorship + totalPlayerSponsorship;
+        // Effective Income includes Transactions + Sponsorships + Credits (Money in hand/Asset)
+        const totalEffectiveIncome = transactionIncome + directTeamSponsorship + totalPlayerSponsorship + totalPlayerCredits;
 
         setFinancials({
             perPlayerShare: finalPerPlayerShare,
@@ -295,6 +296,7 @@ function App() {
             playerDetails: playerResults,
             totalTeamSponsorship: directTeamSponsorship,
             totalPlayerSponsorship,
+            totalPlayerCredits,
             totalPlayerOverflow: currentOverflow,
             transactionIncome, // Renamed for clarity, was actualIncome
             actualIncome: totalEffectiveIncome, // Now acts as Total Assets
@@ -553,6 +555,7 @@ function App() {
             ["Transactions (Income)", fmt(financials.transactionIncome)],
             ["Team Sponsorships", fmt(financials.totalTeamSponsorship)],
             ["Player Sponsorships", fmt(financials.totalPlayerSponsorship)],
+            ["Player Credits", fmt(financials.totalPlayerCredits)],
             ["TOTAL INCOME / ASSETS", fmt(financials.actualIncome)],
             ["Total Actual Expenses", fmt(financials.actualExpense)],
             ["NET BANK BALANCE", fmt(financials.bankBalance)]
@@ -721,6 +724,7 @@ function App() {
                                     <div className="flex justify-between text-xs text-slate-400"><span>Transactions (In)</span><span>{fmt(financials.transactionIncome)}</span></div>
                                     <div className="flex justify-between text-xs text-slate-400"><span>Team Sponsors</span><span>{fmt(financials.totalTeamSponsorship)}</span></div>
                                     <div className="flex justify-between text-xs text-slate-400"><span>Player Sponsors</span><span>{fmt(financials.totalPlayerSponsorship)}</span></div>
+                                    <div className="flex justify-between text-xs text-slate-400"><span>Player Credits</span><span>{fmt(financials.totalPlayerCredits)}</span></div>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-300">Total Available</span><span className="text-emerald-400 font-bold">{fmt(financials.actualIncome)}</span>
@@ -754,6 +758,12 @@ function App() {
                                                 <span className="text-slate-500">Paid:</span>
                                                 <span className="text-emerald-400">{fmt(f.paid)}</span>
                                             </div>
+                                            {f.credit > 0 && (
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500">Credit:</span>
+                                                    <span className="text-blue-400">{fmt(f.credit)}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between text-xs font-bold mt-1 pt-1 border-t border-slate-800/50">
                                                 <span className="text-slate-400">Owed:</span>
                                                 <span className={isPaidOff ? 'text-slate-400' : 'text-red-400'}>{fmt(f.outstanding)}</span>
