@@ -974,29 +974,52 @@ function App() {
                             <div className="md:hidden space-y-3">
                                 {data.roster.map(p => {
                                     const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
+                                    const isEditing = editingPersonId === p.id;
+
                                     return (
-                                        <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-lg p-3 space-y-3">
+                                        <div key={p.id} className={`border rounded-lg p-3 space-y-3 ${isEditing ? 'bg-slate-900 border-amber-500/50' : 'bg-slate-900 border-slate-800'}`}>
                                             {/* HEADER: Name, Type, Number */}
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1 mr-2">
-                                                    <div className="flex gap-1 mb-1">
-                                                        <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
-                                                        <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
-                                                    </div>
+                                                    {isEditing ? (
+                                                        <div className="flex gap-1 mb-1">
+                                                            <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                            <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="font-bold text-lg text-white mb-0.5">{p.firstName} {p.lastName}</div>
+                                                    )}
                                                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
                                                 </div>
-                                                <input className={`${smInCls} w-10 text-center font-bold text-lg h-10`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                {isEditing ? (
+                                                    <input className={`${smInCls} w-10 text-center font-bold text-lg h-10`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                ) : (
+                                                    <div className="text-xl font-black text-slate-500">#{p.jersey || '--'}</div>
+                                                )}
                                             </div>
 
                                             {/* CONFIG: Package & Extras */}
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-800 pt-2">
                                                 <div>
                                                     <div className="text-[10px] text-slate-500 uppercase mb-1">Package</div>
-                                                    <select className={`${smInCls} w-full`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Partial</option></select>
+                                                    {isEditing ? (
+                                                        <select className={`${smInCls} w-full`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Partial</option></select>
+                                                    ) : (
+                                                        <div className="text-slate-300 capitalize">{p.packageType}</div>
+                                                    )}
                                                 </div>
-                                                <div className="flex flex-col gap-1 justify-center">
-                                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                <div>
+                                                    <div className="text-[10px] text-slate-500 uppercase mb-1">Extras</div>
+                                                    {isEditing ? (
+                                                        <div className="flex flex-col gap-1">
+                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-slate-300">
+                                                            {p.extras?.length > 0 ? p.extras.map(e => e === 'thirdJersey' ? '3rd Jersey' : 'Cage Jacket').join(', ') : <span className="text-slate-600 italic">None</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -1009,11 +1032,19 @@ function App() {
                                                     </div>
                                                     <div>
                                                         <div className="text-[10px] text-slate-500">Sponsor</div>
-                                                        <input type="number" className={`${smInCls} w-full text-center p-0 h-5`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" />
+                                                        {isEditing ? (
+                                                            <input type="number" className={`${smInCls} w-full text-center p-0 h-5`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" />
+                                                        ) : (
+                                                            <div className="text-slate-300">{fmt(p.sponsorship)}</div>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <div className="text-[10px] text-slate-500">Credit</div>
-                                                        <input type="number" className={`${smInCls} w-full text-center p-0 h-5`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" />
+                                                        {isEditing ? (
+                                                            <input type="number" className={`${smInCls} w-full text-center p-0 h-5`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" />
+                                                        ) : (
+                                                            <div className="text-slate-300">{fmt(p.credit)}</div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -1024,7 +1055,14 @@ function App() {
                                                     <span className="text-xs text-slate-400">Total Owed:</span>
                                                     <span className="text-lg font-black text-amber-400">{fmt(f.finalOwed)}</span>
                                                 </div>
-                                                <button onClick={() => removePerson(p.id)} className="bg-slate-800 text-slate-400 p-2 rounded hover:bg-red-900/50 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                                                <div className="flex gap-2">
+                                                    {isEditing ? (
+                                                        <button onClick={() => setEditingPersonId(null)} className="bg-emerald-600 text-white p-2 rounded hover:bg-emerald-700 transition-colors"><Save size={16} /></button>
+                                                    ) : (
+                                                        <button onClick={() => setEditingPersonId(p.id)} className="bg-slate-800 text-slate-400 p-2 rounded hover:text-white transition-colors"><Settings size={16} /></button>
+                                                    )}
+                                                    <button onClick={() => removePerson(p.id)} className="bg-slate-800 text-slate-400 p-2 rounded hover:bg-red-900/50 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                                                </div>
                                             </div>
                                         </div>
                                     )
@@ -1034,34 +1072,65 @@ function App() {
                             {/* DESKTOP TABLE VIEW */}
                             <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
-                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-8"></th></tr></thead>
+                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-20"></th></tr></thead>
                                     <tbody className="divide-y divide-slate-800">
                                         {data.roster.map(p => {
                                             const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
+                                            const isEditing = editingPersonId === p.id;
                                             return (
-                                                <tr key={p.id}>
+                                                <tr key={p.id} className={isEditing ? 'bg-slate-800/50' : ''}>
                                                     <td className="p-3">
-                                                        <div className="flex gap-1 mb-1 min-w-[160px]">
-                                                            <input className={`${smInCls} flex-1 min-w-0`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
-                                                            <input className={`${smInCls} flex-1 min-w-0`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
-                                                            <input className={`${smInCls} w-12 text-center`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
-                                                        </div>
+                                                        {isEditing ? (
+                                                            <div className="space-y-1">
+                                                                <div className="flex gap-1 min-w-[160px]">
+                                                                    <input className={`${smInCls} flex-1 min-w-0`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                                    <input className={`${smInCls} flex-1 min-w-0`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
+                                                                    <input className={`${smInCls} w-12 text-center`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                <div className="font-bold text-white">{p.firstName} {p.lastName}</div>
+                                                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                    <span>#{p.jersey || '--'}</span>
+                                                                    <span className={`px-1 rounded text-[10px] ${p.type === 'player' ? 'bg-blue-900/50 text-blue-300' : 'bg-purple-900/50 text-purple-300'}`}>{p.type}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="p-3">
-                                                        <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
-                                                        <div className="flex flex-col gap-1">
-                                                            <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                            <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
-                                                        </div>
+                                                        {isEditing ? (
+                                                            <div className="space-y-1">
+                                                                <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-xs space-y-1">
+                                                                <div className="capitalize font-medium text-slate-300">{p.packageType === 'part' ? 'Partial' : p.packageType}</div>
+                                                                <div className="text-slate-500 text-[10px]">{p.extras?.length > 0 ? p.extras.map(e => e === 'thirdJersey' ? '3rd' : 'Jacket').join(', ') : '-'}</div>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="p-3 text-right text-emerald-400">{p.type === 'player' ? fmt(f.share) : '-'}</td>
-                                                    <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : '-'}</td>
-                                                    <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" /> : '-'}</td>
+                                                    <td className="p-3 text-right">{isEditing && p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : (p.type === 'player' ? fmt(p.sponsorship) : '-')}</td>
+                                                    <td className="p-3 text-right">{isEditing && p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" /> : (p.type === 'player' ? fmt(p.credit) : '-')}</td>
                                                     <td className="p-3 text-right font-bold text-amber-400">{fmt(f.finalOwed)}</td>
-                                                    <td className="p-3"><button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
+                                                    <td className="p-3">
+                                                        <div className="flex gap-2 justify-end">
+                                                            {isEditing ? (
+                                                                <button onClick={() => setEditingPersonId(null)} className="text-emerald-500 hover:text-emerald-400"><Save size={16} /></button>
+                                                            ) : (
+                                                                <button onClick={() => setEditingPersonId(p.id)} className="text-slate-500 hover:text-slate-300"><Settings size={16} /></button>
+                                                            )}
+                                                            <button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={16} /></button>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             )
                                         })}
