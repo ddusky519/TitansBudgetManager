@@ -1012,8 +1012,8 @@ function App() {
                                                     <div className="text-[10px] text-slate-500 uppercase mb-1">Extras</div>
                                                     {isEditing ? (
                                                         <div className="flex flex-col gap-1">
-                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey') || false} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket') || false} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
                                                         </div>
                                                     ) : (
                                                         <div className="text-slate-300">
@@ -1106,8 +1106,8 @@ function App() {
                                                             <div className="space-y-1">
                                                                 <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
                                                                 <div className="flex flex-col gap-1">
-                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey') || false} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket') || false} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
                                                                 </div>
                                                             </div>
                                                         ) : (
