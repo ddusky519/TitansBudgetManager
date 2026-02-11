@@ -127,26 +127,91 @@ function App() {
         playerId: '' // Linked Player
     });
     const [selectedTx, setSelectedTx] = useState([]);
+    const [editingTxId, setEditingTxId] = useState(null);
 
     // Style Constants
     const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
     const smInCls = "bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:ring-2 focus:ring-amber-400 outline-none";
 
     const [financials, setFinancials] = useState({
+        // ... (existing financials state)
         perPlayerShare: 0,
         sharedExpenses: 0,
         totalCollections: 0,
         playerDetails: {},
         totalTeamSponsorship: 0,
+        totalPlayerSponsorship: 0,
+        totalPlayerCredits: 0,
         totalPlayerOverflow: 0,
+        transactionIncome: 0,
         actualIncome: 0,
         actualExpense: 0,
         bankBalance: 0,
         titansFees: 0,
+        titanFeesPaid: 0,
+        titanFeesRemaining: 0,
         playerTitansFees: 0,
         coachTitansFees: 0,
         extraGamesCost: 0
     });
+
+    // ... (skipping to handlers)
+
+    const addTx = () => {
+        if (!newTx.description || !newTx.amount) return;
+
+        // ensure playerId is stored as number if it exists
+        const pId = newTx.playerId ? parseFloat(newTx.playerId) : '';
+        let finalDesc = newTx.description;
+
+        if (!editingTxId) {
+            if (pId) {
+                const p = data.roster.find(r => r.id == pId);
+                // Check if already starts with name to avoid double append if user typed it
+                if (p && !finalDesc.startsWith(p.firstName)) {
+                    finalDesc = `${p.firstName} ${p.lastName} - ${finalDesc}`;
+                }
+            }
+            setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount), playerId: pId }, ...p.transactions] }));
+            showNotification("Transaction Added");
+        } else {
+            // Update Existing
+            setData(p => ({
+                ...p,
+                transactions: p.transactions.map(t => t.id === editingTxId ? { ...newTx, id: editingTxId, amount: parseFloat(newTx.amount), playerId: pId } : t)
+            }));
+            setEditingTxId(null);
+            showNotification("Transaction Updated");
+        }
+
+        setNewTx({ date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'out', category: 'Tournament Fee', playerId: '' }); // Reset
+    };
+
+    const editTx = (tx) => {
+        setNewTx({
+            date: tx.date,
+            description: tx.description,
+            amount: tx.amount,
+            type: tx.type,
+            category: tx.category,
+            playerId: tx.playerId || ''
+        });
+        setEditingTxId(tx.id);
+        if (activeTab !== 'ledger') setActiveTab('ledger'); // Verify we are on ledger
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingTxId(null);
+        setNewTx({ date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'out', category: 'Tournament Fee', playerId: '' });
+    };
+
+    const removeTx = (id) => {
+        if (window.confirm("Delete Tx?")) {
+            setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== id) }));
+            if (editingTxId === id) cancelEdit();
+        }
+    };
 
     // Load Data
     useEffect(() => {
@@ -292,6 +357,12 @@ function App() {
         const transactionIncome = data.transactions.filter(t => t.type === 'in').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         const actualExpense = data.transactions.filter(t => t.type === 'out').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
+        // Titan Fees Tracking
+        const titanFeesPaid = data.transactions
+            .filter(t => t.type === 'out' && t.category === 'Titan Fees')
+            .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        const titanFeesRemaining = Math.max(0, totalTitansFees - titanFeesPaid);
+
         // Effective Income includes Transactions + Sponsorships + Credits (Money in hand/Asset)
         const totalEffectiveIncome = transactionIncome + directTeamSponsorship + totalPlayerSponsorship + totalPlayerCredits;
 
@@ -309,6 +380,8 @@ function App() {
             actualExpense,
             bankBalance: totalEffectiveIncome - actualExpense,
             titansFees: totalTitansFees,     // Consolidated Total
+            titanFeesPaid,                   // New
+            titanFeesRemaining,              // New
             playerTitansFees,                // Breakdown: Player Gear
             coachTitansFees: coachExpenses,  // Breakdown: Coach Gear
             extraGamesCost                   // Breakdown: Extra Games
@@ -324,21 +397,59 @@ function App() {
 
     const addTx = () => {
         if (!newTx.description || !newTx.amount) return;
-        // If linked to player, append Name to Description for clarity in simple lists
-        let finalDesc = newTx.description;
+
         // ensure playerId is stored as number if it exists
         const pId = newTx.playerId ? parseFloat(newTx.playerId) : '';
+        let finalDesc = newTx.description;
 
-        if (pId) {
-            const p = data.roster.find(r => r.id == pId);
-            if (p) finalDesc = `${p.firstName} ${p.lastName} - ${finalDesc}`;
+        if (!editingTxId) {
+            if (pId) {
+                const p = data.roster.find(r => r.id == pId);
+                // Check if already starts with name to avoid double append if user typed it
+                if (p && !finalDesc.startsWith(p.firstName)) {
+                    finalDesc = `${p.firstName} ${p.lastName} - ${finalDesc}`;
+                }
+            }
+            setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount), playerId: pId }, ...p.transactions] }));
+            showNotification("Transaction Added");
+        } else {
+            // Update Existing
+            setData(p => ({
+                ...p,
+                transactions: p.transactions.map(t => t.id === editingTxId ? { ...newTx, id: editingTxId, amount: parseFloat(newTx.amount), playerId: pId } : t)
+            }));
+            setEditingTxId(null);
+            showNotification("Transaction Updated");
         }
 
-        setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount), playerId: pId }, ...p.transactions] }));
-        setNewTx({ ...newTx, description: '', amount: '', playerId: '' }); // Reset
-        showNotification("Transaction Added");
+        setNewTx({ date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'out', category: 'Tournament Fee', playerId: '' }); // Reset
     };
-    const removeTx = (id) => window.confirm("Delete Tx?") && setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== id) }));
+
+    const editTx = (tx) => {
+        setNewTx({
+            date: tx.date,
+            description: tx.description,
+            amount: tx.amount,
+            type: tx.type,
+            category: tx.category,
+            playerId: tx.playerId || ''
+        });
+        setEditingTxId(tx.id);
+        if (activeTab !== 'ledger') setActiveTab('ledger'); // Verify we are on ledger
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingTxId(null);
+        setNewTx({ date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'out', category: 'Tournament Fee', playerId: '' });
+    };
+
+    const removeTx = (id) => {
+        if (window.confirm("Delete Tx?")) {
+            setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== id) }));
+            if (editingTxId === id) cancelEdit();
+        }
+    };
 
     // Bulk Actions
     const toggleTxSelection = (id) => {
