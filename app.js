@@ -148,8 +148,8 @@ function App() {
     const [selectedTx, setSelectedTx] = useState([]);
 
     // Style Constants
-    const inCls = "bg-slate-950 text-white p-2 rounded border border-slate-800 w-full";
-    const smInCls = "bg-slate-950 text-white px-2 py-1 rounded border border-slate-800 text-xs";
+    const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
+    const smInCls = "bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:ring-2 focus:ring-amber-400 outline-none";
 
     const [financials, setFinancials] = useState({
         perPlayerShare: 0,
@@ -689,8 +689,7 @@ function App() {
     const fmt = (v) => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(v || 0);
 
     // Styles
-    const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
-    const smInCls = "bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:ring-2 focus:ring-amber-400 outline-none";
+    // Moved to top of component
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
