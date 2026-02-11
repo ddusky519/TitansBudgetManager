@@ -858,7 +858,10 @@ function App() {
                                                 <td className="p-3 text-slate-400 text-xs">{t.date}</td>
                                                 <td className="p-3"><div>{t.description}</div><div className="text-xs text-slate-500">{t.category}</div></td>
                                                 <td className={`p-3 text-right font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</td>
-                                                <td className="p-3"><button onClick={() => removeTx(t.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
+                                                <td className="p-3 flex gap-2 justify-end">
+                                                    <button onClick={() => editTx(t)} className="text-slate-500 hover:text-amber-400 transition-colors"><Settings size={14} /></button>
+                                                    <button onClick={() => removeTx(t.id)} className="text-slate-500 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
