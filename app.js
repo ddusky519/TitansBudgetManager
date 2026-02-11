@@ -64,6 +64,8 @@ const ClipboardList = createIcon('ClipboardList');
 const TrendingUp = createIcon('TrendingUp');
 const TrendingDown = createIcon('TrendingDown');
 const ArrowRight = createIcon('ArrowRight');
+const Settings = createIcon('Settings');
+const Save = createIcon('Save');
 
 // 3. Default Config
 const DEFAULT_FEES = {
