@@ -128,6 +128,7 @@ function App() {
     });
     const [selectedTx, setSelectedTx] = useState([]);
     const [editingTxId, setEditingTxId] = useState(null);
+    const [editingPersonId, setEditingPersonId] = useState(null);
 
     // Style Constants
     const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
