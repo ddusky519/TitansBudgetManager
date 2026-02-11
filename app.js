@@ -911,24 +911,51 @@ function App() {
                             </div>
 
                             {/* LIST */}
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm whitespace-nowrap">
-                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-16"></th></tr></thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
-                                            <tr key={t.id} className={selectedTx.includes(t.id) ? 'bg-slate-800/50' : ''}>
-                                                <td className="p-3 text-center"><input type="checkbox" checked={selectedTx.includes(t.id)} onChange={() => toggleTxSelection(t.id)} /></td>
-                                                <td className="p-3 text-slate-400 text-xs">{t.date}</td>
-                                                <td className="p-3"><div>{t.description}</div><div className="text-xs text-slate-500">{t.category}</div></td>
-                                                <td className={`p-3 text-right font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</td>
-                                                <td className="p-3 flex gap-2 justify-end">
-                                                    <button onClick={() => editTx(t)} className="text-slate-500 hover:text-amber-400 transition-colors"><Settings size={14} /></button>
-                                                    <button onClick={() => removeTx(t.id)} className="text-slate-500 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            {/* RESPONSIVE LIST */}
+                            <div className="space-y-2">
+                                {/* MOBILE CARD VIEW */}
+                                <div className="md:hidden space-y-2">
+                                    {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
+                                        <div key={t.id} className={`p-3 rounded-lg border ${selectedTx.includes(t.id) ? 'bg-slate-800 border-emerald-500/50' : 'bg-slate-900 border-slate-800'}`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <input type="checkbox" className="rounded bg-slate-800 border-slate-700" checked={selectedTx.includes(t.id)} onChange={() => toggleTxSelection(t.id)} />
+                                                    <span className="text-xs text-slate-400 font-mono">{t.date}</span>
+                                                </div>
+                                                <span className={`font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</span>
+                                            </div>
+                                            <div className="font-medium text-slate-200 mb-1">{t.description}</div>
+                                            <div className="flex justify-between items-center text-xs mt-2 pt-2 border-t border-slate-800">
+                                                <span className="text-slate-500 bg-slate-950 px-2 py-0.5 rounded-full">{t.category}</span>
+                                                <div className="flex gap-3">
+                                                    <button onClick={() => editTx(t)} className="text-slate-400 hover:text-amber-400"><Settings size={14} /></button>
+                                                    <button onClick={() => removeTx(t.id)} className="text-slate-400 hover:text-red-400"><Trash2 size={14} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* DESKTOP TABLE VIEW */}
+                                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
+                                    <table className="w-full text-left text-sm whitespace-nowrap">
+                                        <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-16"></th></tr></thead>
+                                        <tbody className="divide-y divide-slate-800 bg-slate-900">
+                                            {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
+                                                <tr key={t.id} className={selectedTx.includes(t.id) ? 'bg-slate-800/50' : ''}>
+                                                    <td className="p-3 text-center"><input type="checkbox" checked={selectedTx.includes(t.id)} onChange={() => toggleTxSelection(t.id)} /></td>
+                                                    <td className="p-3 text-slate-400 text-xs">{t.date}</td>
+                                                    <td className="p-3"><div>{t.description}</div><div className="text-xs text-slate-500">{t.category}</div></td>
+                                                    <td className={`p-3 text-right font-bold ${t.type === 'in' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'in' ? '+' : '-'}{fmt(t.amount)}</td>
+                                                    <td className="p-3 flex gap-2 justify-end">
+                                                        <button onClick={() => editTx(t)} className="text-slate-500 hover:text-amber-400 transition-colors"><Settings size={14} /></button>
+                                                        <button onClick={() => removeTx(t.id)} className="text-slate-500 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -941,41 +968,106 @@ function App() {
                             <button onClick={() => addPerson('player')} className="bg-emerald-600 text-white px-3 py-1 text-xs rounded">+ Player</button>
                             <button onClick={() => addPerson('coach')} className="bg-slate-700 text-white px-3 py-1 text-xs rounded">+ Coach</button>
                         </div>
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
-                            <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-8"></th></tr></thead>
-                                <tbody className="divide-y divide-slate-800">
-                                    {data.roster.map(p => {
-                                        const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
-                                        return (
-                                            <tr key={p.id}>
-                                                <td className="p-3">
-                                                    <div className="flex gap-1 mb-1 min-w-[160px]">
-                                                        <input className={`${smInCls} flex-1 min-w-0`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
-                                                        <input className={`${smInCls} flex-1 min-w-0`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                        {/* RESPONSIVE ROSTER */}
+                        <div className="space-y-4">
+                            {/* MOBILE CARD VIEW */}
+                            <div className="md:hidden space-y-3">
+                                {data.roster.map(p => {
+                                    const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
+                                    return (
+                                        <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-lg p-3 space-y-3">
+                                            {/* HEADER: Name, Type, Number */}
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 mr-2">
+                                                    <div className="flex gap-1 mb-1">
+                                                        <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                        <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
-                                                        <input className={`${smInCls} w-12 text-center`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
+                                                </div>
+                                                <input className={`${smInCls} w-10 text-center font-bold text-lg h-10`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                            </div>
+
+                                            {/* CONFIG: Package & Extras */}
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div>
+                                                    <div className="text-[10px] text-slate-500 uppercase mb-1">Package</div>
+                                                    <select className={`${smInCls} w-full`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Partial</option></select>
+                                                </div>
+                                                <div className="flex flex-col gap-1 justify-center">
+                                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                </div>
+                                            </div>
+
+                                            {/* FINANCIALS */}
+                                            {p.type === 'player' && (
+                                                <div className="bg-slate-950 rounded p-2 grid grid-cols-3 gap-2 text-center border border-slate-800">
+                                                    <div>
+                                                        <div className="text-[10px] text-slate-500">Share</div>
+                                                        <div className="text-emerald-500 font-mono">{fmt(f.share)}</div>
                                                     </div>
-                                                </td>
-                                                <td className="p-3">
-                                                    <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
-                                                    <div className="flex flex-col gap-1">
-                                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                        <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                    <div>
+                                                        <div className="text-[10px] text-slate-500">Sponsor</div>
+                                                        <input type="number" className={`${smInCls} w-full text-center p-0 h-5`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" />
                                                     </div>
-                                                </td>
-                                                <td className="p-3 text-right text-emerald-400">{p.type === 'player' ? fmt(f.share) : '-'}</td>
-                                                <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : '-'}</td>
-                                                <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" /> : '-'}</td>
-                                                <td className="p-3 text-right font-bold text-amber-400">{fmt(f.finalOwed)}</td>
-                                                <td className="p-3"><button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
+                                                    <div>
+                                                        <div className="text-[10px] text-slate-500">Credit</div>
+                                                        <input type="number" className={`${smInCls} w-full text-center p-0 h-5`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* FOOTER: Owed & Actions */}
+                                            <div className="flex justify-between items-center pt-2 border-t border-slate-800">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-slate-400">Total Owed:</span>
+                                                    <span className="text-lg font-black text-amber-400">{fmt(f.finalOwed)}</span>
+                                                </div>
+                                                <button onClick={() => removePerson(p.id)} className="bg-slate-800 text-slate-400 p-2 rounded hover:bg-red-900/50 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            {/* DESKTOP TABLE VIEW */}
+                            <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
+                                <table className="w-full text-left text-sm whitespace-nowrap">
+                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-8"></th></tr></thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {data.roster.map(p => {
+                                            const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
+                                            return (
+                                                <tr key={p.id}>
+                                                    <td className="p-3">
+                                                        <div className="flex gap-1 mb-1 min-w-[160px]">
+                                                            <input className={`${smInCls} flex-1 min-w-0`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                            <input className={`${smInCls} flex-1 min-w-0`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-[10px] px-1 rounded ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
+                                                            <input className={`${smInCls} w-12 text-center`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
+                                                        <div className="flex flex-col gap-1">
+                                                            <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey')} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
+                                                            <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket')} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3 text-right text-emerald-400">{p.type === 'player' ? fmt(f.share) : '-'}</td>
+                                                    <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.sponsorship} onChange={e => updatePerson(p.id, 'sponsorship', e.target.value)} placeholder="0" /> : '-'}</td>
+                                                    <td className="p-3 text-right">{p.type === 'player' ? <input type="number" className={`${smInCls} w-16 text-right border-blue-900`} value={p.credit} onChange={e => updatePerson(p.id, 'credit', e.target.value)} placeholder="0" /> : '-'}</td>
+                                                    <td className="p-3 text-right font-bold text-amber-400">{fmt(f.finalOwed)}</td>
+                                                    <td className="p-3"><button onClick={() => removePerson(p.id)} className="text-slate-600 hover:text-red-500"><Trash2 size={14} /></button></td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )}
