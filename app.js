@@ -155,64 +155,6 @@ function App() {
         extraGamesCost: 0
     });
 
-    // ... (skipping to handlers)
-
-    const addTx = () => {
-        if (!newTx.description || !newTx.amount) return;
-
-        // ensure playerId is stored as number if it exists
-        const pId = newTx.playerId ? parseFloat(newTx.playerId) : '';
-        let finalDesc = newTx.description;
-
-        if (!editingTxId) {
-            if (pId) {
-                const p = data.roster.find(r => r.id == pId);
-                // Check if already starts with name to avoid double append if user typed it
-                if (p && !finalDesc.startsWith(p.firstName)) {
-                    finalDesc = `${p.firstName} ${p.lastName} - ${finalDesc}`;
-                }
-            }
-            setData(p => ({ ...p, transactions: [{ ...newTx, description: finalDesc, id: Date.now(), amount: parseFloat(newTx.amount), playerId: pId }, ...p.transactions] }));
-            showNotification("Transaction Added");
-        } else {
-            // Update Existing
-            setData(p => ({
-                ...p,
-                transactions: p.transactions.map(t => t.id === editingTxId ? { ...newTx, id: editingTxId, amount: parseFloat(newTx.amount), playerId: pId } : t)
-            }));
-            setEditingTxId(null);
-            showNotification("Transaction Updated");
-        }
-
-        setNewTx({ date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'out', category: 'Tournament Fee', playerId: '' }); // Reset
-    };
-
-    const editTx = (tx) => {
-        setNewTx({
-            date: tx.date,
-            description: tx.description,
-            amount: tx.amount,
-            type: tx.type,
-            category: tx.category,
-            playerId: tx.playerId || ''
-        });
-        setEditingTxId(tx.id);
-        if (activeTab !== 'ledger') setActiveTab('ledger'); // Verify we are on ledger
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const cancelEdit = () => {
-        setEditingTxId(null);
-        setNewTx({ date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'out', category: 'Tournament Fee', playerId: '' });
-    };
-
-    const removeTx = (id) => {
-        if (window.confirm("Delete Tx?")) {
-            setData(p => ({ ...p, transactions: p.transactions.filter(t => t.id !== id) }));
-            if (editingTxId === id) cancelEdit();
-        }
-    };
-
     // Load Data
     useEffect(() => {
         const savedData = localStorage.getItem('titanBudget_v5');
