@@ -99,26 +99,7 @@ const CATEGORIES = {
     expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Titan Fees", "Other Expense"]
 };
 
-// ... (omitted code)
 
-<div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-    <div className="flex items-center gap-2 mb-2"><TrendingDown className="text-red-400" size={16} /><h4 className="font-bold">Expenses</h4></div>
-    <div className="flex justify-between text-sm border-b border-slate-800 pb-2 mb-2">
-        <span className="text-slate-400">Budgeted</span><span className="text-slate-300">{fmt(financials.sharedExpenses)}</span>
-    </div>
-    <div className="flex justify-between text-sm mb-2">
-        <span className="text-slate-400">Actual</span><span className="text-red-400 font-bold">{fmt(financials.actualExpense)}</span>
-    </div>
-    {/* TITAN FEES BREAKDOWN */}
-    <div className="bg-slate-950 p-2 rounded text-xs border border-slate-800 mt-2">
-        <div className="font-bold text-slate-300 mb-1 border-b border-slate-800 pb-1">Titan Fees Checking</div>
-        <div className="flex justify-between text-slate-400"><span>Owed to Org:</span><span className="text-slate-200">{fmt(financials.titansFees)}</span></div>
-        <div className="flex justify-between text-slate-400"><span>Paid So Far:</span><span className="text-emerald-400">{fmt(financials.titanFeesPaid)}</span></div>
-        <div className="flex justify-between font-bold mt-1 pt-1 border-t border-slate-800">
-            <span className="text-slate-300">Staying with us:</span><span className="text-amber-400">{fmt(financials.titanFeesRemaining)}</span>
-        </div>
-    </div>
-</div>
 
 const FEE_LABELS = {
     fullUniform: "Player Full Uniform",
