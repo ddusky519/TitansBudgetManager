@@ -762,15 +762,40 @@ function App() {
                 {/* OVERVIEW */}
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
-                        <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden">
-                            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                                <div>
-                                    <h2 className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Bank Balance</h2>
-                                    <div className={`text-4xl sm:text-5xl font-black ${financials.bankBalance >= 0 ? 'text-white' : 'text-red-500'}`}>{fmt(financials.bankBalance)}</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* BANK BALANCE */}
+                            <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 relative overflow-hidden flex flex-col justify-center">
+                                <div className="relative z-10 flex justify-between items-center gap-4">
+                                    <div>
+                                        <h2 className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Bank Balance</h2>
+                                        <div className={`text-4xl font-black ${financials.bankBalance >= 0 ? 'text-white' : 'text-red-500'}`}>{fmt(financials.bankBalance)}</div>
+                                    </div>
+                                    <div className="text-right space-y-1">
+                                        <div className="text-emerald-400 text-xs font-bold uppercase">In: {fmt(financials.actualIncome)}</div>
+                                        <div className="text-red-400 text-xs font-bold uppercase">Out: {fmt(financials.actualExpense)}</div>
+                                    </div>
                                 </div>
-                                <div className="text-right space-y-1">
-                                    <div className="text-emerald-400 text-xs font-bold uppercase">In: {fmt(financials.actualIncome)}</div>
-                                    <div className="text-red-400 text-xs font-bold uppercase">Out: {fmt(financials.actualExpense)}</div>
+                            </div>
+
+                            {/* TITAN FEES STATUS */}
+                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col justify-center">
+                                <div className="flex items-center gap-2 mb-3 border-b border-slate-800 pb-2">
+                                    <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-1.5 py-0.5 rounded">ORG</span>
+                                    <h3 className="font-bold text-slate-200 text-sm">Titan Fees Status</h3>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Total Owed</div>
+                                        <div className="font-bold text-slate-200 text-sm md:text-base">{fmt(financials.titansFees)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Paid</div>
+                                        <div className="font-bold text-emerald-400 text-sm md:text-base">{fmt(financials.titanFeesPaid)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Remaining</div>
+                                        <div className="font-bold text-amber-400 text-sm md:text-base">{fmt(financials.titanFeesRemaining)}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -796,15 +821,7 @@ function App() {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-400">Actual</span><span className="text-red-400 font-bold">{fmt(financials.actualExpense)}</span>
                                 </div>
-                                {/* TITAN FEES BREAKDOWN */}
-                                <div className="bg-slate-950 p-2 rounded text-xs border border-slate-800 mt-2">
-                                    <div className="font-bold text-slate-300 mb-1 border-b border-slate-800 pb-1">Titan Fees Checking</div>
-                                    <div className="flex justify-between text-slate-400"><span>Owed to Org:</span><span className="text-slate-200">{fmt(financials.titansFees)}</span></div>
-                                    <div className="flex justify-between text-slate-400"><span>Paid So Far:</span><span className="text-emerald-400">{fmt(financials.titanFeesPaid)}</span></div>
-                                    <div className="flex justify-between font-bold mt-1 pt-1 border-t border-slate-800">
-                                        <span className="text-slate-300">Remaining:</span><span className="text-amber-400">{fmt(financials.titanFeesRemaining)}</span>
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
 
