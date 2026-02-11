@@ -64,8 +64,6 @@ const ClipboardList = createIcon('ClipboardList');
 const TrendingUp = createIcon('TrendingUp');
 const TrendingDown = createIcon('TrendingDown');
 const ArrowRight = createIcon('ArrowRight');
-const Settings = createIcon('Settings');
-const Save = createIcon('Save');
 
 // 3. Default Config
 const DEFAULT_FEES = {
@@ -148,6 +146,10 @@ function App() {
         playerId: '' // Linked Player
     });
     const [selectedTx, setSelectedTx] = useState([]);
+
+    // Style Constants
+    const inCls = "bg-slate-950 text-white p-2 rounded border border-slate-800 w-full";
+    const smInCls = "bg-slate-950 text-white px-2 py-1 rounded border border-slate-800 text-xs";
 
     const [financials, setFinancials] = useState({
         perPlayerShare: 0,
