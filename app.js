@@ -96,8 +96,29 @@ const INITIAL_STATE = {
 
 const CATEGORIES = {
     income: ["Player Fees", "Sponsorship", "Fundraising", "Other Income"],
-    expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Other Expense"]
+    expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Titan Fees", "Other Expense"]
 };
+
+// ... (omitted code)
+
+<div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+    <div className="flex items-center gap-2 mb-2"><TrendingDown className="text-red-400" size={16} /><h4 className="font-bold">Expenses</h4></div>
+    <div className="flex justify-between text-sm border-b border-slate-800 pb-2 mb-2">
+        <span className="text-slate-400">Budgeted</span><span className="text-slate-300">{fmt(financials.sharedExpenses)}</span>
+    </div>
+    <div className="flex justify-between text-sm mb-2">
+        <span className="text-slate-400">Actual</span><span className="text-red-400 font-bold">{fmt(financials.actualExpense)}</span>
+    </div>
+    {/* TITAN FEES BREAKDOWN */}
+    <div className="bg-slate-950 p-2 rounded text-xs border border-slate-800 mt-2">
+        <div className="font-bold text-slate-300 mb-1 border-b border-slate-800 pb-1">Titan Fees Checking</div>
+        <div className="flex justify-between text-slate-400"><span>Owed to Org:</span><span className="text-slate-200">{fmt(financials.titansFees)}</span></div>
+        <div className="flex justify-between text-slate-400"><span>Paid So Far:</span><span className="text-emerald-400">{fmt(financials.titanFeesPaid)}</span></div>
+        <div className="flex justify-between font-bold mt-1 pt-1 border-t border-slate-800">
+            <span className="text-slate-300">Staying with us:</span><span className="text-amber-400">{fmt(financials.titanFeesRemaining)}</span>
+        </div>
+    </div>
+</div>
 
 const FEE_LABELS = {
     fullUniform: "Player Full Uniform",
@@ -783,8 +804,9 @@ function App() {
                         <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-bold text-slate-300 uppercase">Transactions</h3>
-                                    {selectedTx.length > 0 && (
+                                    <h3 className="text-sm font-bold text-slate-300 uppercase">{editingTxId ? 'Edit Entry' : 'Transactions'}</h3>
+                                    {editingTxId && <button onClick={cancelEdit} className="bg-slate-700 text-xs px-2 py-1 rounded text-slate-300">Cancel</button>}
+                                    {!editingTxId && selectedTx.length > 0 && (
                                         <button onClick={deleteSelectedTx} className="bg-red-600 text-white text-[10px] px-2 py-1 rounded flex items-center gap-1 animate-pulse">
                                             <Trash2 size={10} /> Delete ({selectedTx.length})
                                         </button>
@@ -796,7 +818,7 @@ function App() {
                             </div>
 
                             {/* ADD FORM */}
-                            <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 mb-4 p-3 bg-slate-950 rounded border border-slate-800">
+                            <div className={`grid grid-cols-2 lg:grid-cols-6 gap-2 mb-4 p-3 rounded border ${editingTxId ? 'bg-amber-900/20 border-amber-800/50' : 'bg-slate-950 border-slate-800'}`}>
                                 <input type="date" className={inCls} value={newTx.date} onChange={e => setNewTx({ ...newTx, date: e.target.value })} />
                                 <select className={inCls} value={newTx.type} onChange={e => setNewTx({ ...newTx, type: e.target.value, category: CATEGORIES[e.target.value === 'in' ? 'income' : 'expense'][0] })}>
                                     <option value="in">In (+)</option><option value="out">Out (-)</option>
@@ -819,14 +841,16 @@ function App() {
                                 <input className={inCls} placeholder="Desc" value={newTx.description} onChange={e => setNewTx({ ...newTx, description: e.target.value })} />
                                 <div className="flex gap-2">
                                     <input type="number" className={inCls} placeholder="$" value={newTx.amount} onChange={e => setNewTx({ ...newTx, amount: e.target.value })} />
-                                    <button onClick={addTx} className="bg-emerald-600 text-white px-3 rounded"><Plus /></button>
+                                    <button onClick={addTx} className={`${editingTxId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-3 rounded flex items-center justify-center`}>
+                                        {editingTxId ? <Save size={18} /> : <Plus size={18} />}
+                                    </button>
                                 </div>
                             </div>
 
                             {/* LIST */}
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
-                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-8"></th></tr></thead>
+                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-16"></th></tr></thead>
                                     <tbody className="divide-y divide-slate-800">
                                         {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
                                             <tr key={t.id} className={selectedTx.includes(t.id) ? 'bg-slate-800/50' : ''}>
