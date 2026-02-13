@@ -34,6 +34,24 @@
     <!-- 5. PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- 6. Pull to Refresh -->
+    <script src="https://unpkg.com/pulltorefreshjs"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            PullToRefresh.init({
+                mainElement: 'body',
+                onRefresh: function () {
+                    window.location.reload();
+                },
+                distIgnore: 50, // Ignore small pulls
+                iconArrow: '<div style="transform: rotate(180deg)">&#8595;</div>', // Simple arrow
+                iconRefreshing: '&hellip;',
+                instructionsPullToRefresh: 'Pull down to refresh app',
+                instructionsReleaseToRefresh: 'Release to refresh',
+                instructionsRefreshing: 'Refreshing...',
+            });
+        });
+    </script>
     <style>
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
