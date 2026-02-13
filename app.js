@@ -915,7 +915,7 @@ function App() {
                             {/* RESPONSIVE LIST */}
                             <div className="space-y-2">
                                 {/* MOBILE CARD VIEW */}
-                                <div className="md:hidden space-y-2">
+                                <div className="md:hidden space-y-2 overflow-y-auto max-h-[65vh] pr-1">
                                     {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
                                         <div key={t.id} className={`p-3 rounded-lg border ${selectedTx.includes(t.id) ? 'bg-slate-800 border-emerald-500/50' : 'bg-slate-900 border-slate-800'}`}>
                                             <div className="flex justify-between items-start mb-2">
