@@ -138,6 +138,7 @@ function App() {
     const [selectedTx, setSelectedTx] = useState([]);
     const [editingTxId, setEditingTxId] = useState(null);
     const [editingPersonId, setEditingPersonId] = useState(null);
+    const [editingSponsorId, setEditingSponsorId] = useState(null);
 
     // Style Constants
     const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
@@ -1252,9 +1253,90 @@ function App() {
                 {/* ------------------------------------------ */}
                 {/* Revenue sources not linked to specific players */}
                 {activeTab === 'sponsorships' && (
-                    <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-                        <div className="flex justify-between mb-4"><h3 className="font-bold">Team Sponsors</h3><button onClick={addSpon} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
-                        {data.teamSponsorships.map(s => (<div key={s.id} className="flex gap-2 mb-2"><input className={inCls} value={s.name} onChange={e => updateSpon(s.id, 'name', e.target.value)} placeholder="Company" /><input type="number" className={`${inCls} w-32`} value={s.amount} onChange={e => updateSpon(s.id, 'amount', e.target.value)} placeholder="$" /><button onClick={() => removeSpon(s.id)}><Trash2 size={16} /></button></div>))}
+                    <div className="space-y-4">
+                        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-slate-300 uppercase text-sm">Team Sponsors</h3>
+                                <button onClick={addSpon} className="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 transition-colors">
+                                    <Plus size={14} /> Add Sponsor
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {data.teamSponsorships.map(s => {
+                                    const isEditing = editingSponsorId === s.id;
+                                    return (
+                                        <div key={s.id} className={`p-4 rounded-lg border ${isEditing ? 'bg-slate-900 border-amber-500/50 shadow-lg shadow-amber-900/10' : 'bg-slate-950 border-slate-800 hover:border-slate-700'} transition-all`}>
+                                            <div className="flex justify-between items-start gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    {isEditing ? (
+                                                        <div className="space-y-2">
+                                                            <div>
+                                                                <label className="text-[10px] text-slate-500 uppercase font-bold">Company Name</label>
+                                                                <input
+                                                                    className={`${inCls} w-full`}
+                                                                    value={s.name}
+                                                                    onChange={e => updateSpon(s.id, 'name', e.target.value)}
+                                                                    placeholder="Company Name"
+                                                                    autoFocus
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] text-slate-500 uppercase font-bold">Contribution</label>
+                                                                <input
+                                                                    type="number"
+                                                                    className={`${inCls} w-full`}
+                                                                    value={s.amount}
+                                                                    onChange={e => updateSpon(s.id, 'amount', e.target.value)}
+                                                                    placeholder="$ Amount"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <div className="text-lg font-bold text-slate-200 truncate">{s.name || <span className="text-slate-600 italic">Unnamed Sponsor</span>}</div>
+                                                            <div className="text-emerald-400 font-mono font-bold text-xl">{fmt(s.amount)}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex flex-col gap-2">
+                                                    {isEditing ? (
+                                                        <button
+                                                            onClick={() => setEditingSponsorId(null)}
+                                                            className="bg-emerald-600 text-white p-2 rounded hover:bg-emerald-500 transition-colors"
+                                                            title="Save"
+                                                        >
+                                                            <Save size={18} />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setEditingSponsorId(s.id)}
+                                                            className="bg-slate-800 text-slate-400 p-2 rounded hover:bg-slate-700 hover:text-white transition-colors"
+                                                            title="Edit"
+                                                        >
+                                                            <Settings size={18} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => removeSpon(s.id)}
+                                                        className="bg-slate-800 text-slate-600 p-2 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {data.teamSponsorships.length === 0 && (
+                                    <div className="col-span-1 md:col-span-2 text-center p-8 text-slate-500 border border-dashed border-slate-800 rounded-lg">
+                                        No team sponsors added yet.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 
