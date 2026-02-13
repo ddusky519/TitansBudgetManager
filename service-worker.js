@@ -6,7 +6,7 @@
 // 2. Intercept network requests and serve from cache if available (Offline-First).
 // 3. Handle updates by taking control immediately (SkipWaiting).
 
-const CACHE_NAME = 'titans-budget-v59';
+const CACHE_NAME = 'titans-budget-v60';
 const urlsToCache = [
     './',
     './index.html',

@@ -139,6 +139,7 @@ function App() {
     const [editingTxId, setEditingTxId] = useState(null);
     const [editingPersonId, setEditingPersonId] = useState(null);
     const [editingSponsorId, setEditingSponsorId] = useState(null);
+    const [isEditingSettings, setIsEditingSettings] = useState(false);
 
     // Style Constants
     const inCls = "w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 outline-none placeholder-slate-500";
@@ -1347,44 +1348,94 @@ function App() {
                 {['settings', 'save'].includes(activeTab) && (
                     <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4 max-w-lg mx-auto">
                         {activeTab === 'settings' && (
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-bold text-slate-300 uppercase mb-2">Team Details</h3>
-                                <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded border border-slate-800">
-                                    <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs text-slate-400 mb-1">Age Group</label>
-                                        <select className={inCls} value={data.ageGroup} onChange={e => setData(p => ({ ...p, ageGroup: e.target.value }))}>
-                                            {["8U", "9U", "10U", "11U", "12U", "13U", "14U", "15U", "16U", "18U", "22U"].map(g => <option key={g} value={g}>{g}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="col-span-2 sm:col-span-1 flex items-end pb-2">
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300 select-none">
-                                            <input type="checkbox" checked={data.isTier2} onChange={e => setData(p => ({ ...p, isTier2: e.target.checked }))} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-400 focus:ring-amber-400" />
-                                            Tier 2 Team
-                                        </label>
-                                    </div>
-                                    <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs text-slate-400 mb-1">Head Coach</label>
-                                        <input className={inCls} value={data.headCoach} onChange={e => setData(p => ({ ...p, headCoach: e.target.value }))} placeholder="Coach Name" />
-                                    </div>
-                                    <div className="col-span-2 sm:col-span-1">
-                                        <label className="block text-xs text-slate-400 mb-1">Manager</label>
-                                        <input className={inCls} value={data.manager} onChange={e => setData(p => ({ ...p, manager: e.target.value }))} placeholder="Manager Name" />
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-xs text-slate-400 mb-1">Season Year</label>
-                                        <input className={inCls} value={data.season} onChange={e => setData(p => ({ ...p, season: e.target.value }))} placeholder="e.g. 2026" />
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                                    <h3 className="text-sm font-bold text-slate-300 uppercase">Team Configuration</h3>
+                                    <button
+                                        onClick={() => setIsEditingSettings(!isEditingSettings)}
+                                        className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded transition-colors ${isEditingSettings ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                                    >
+                                        {isEditingSettings ? <><Save size={14} /> Save Changes</> : <><Settings size={14} /> Edit Settings</>}
+                                    </button>
+                                </div>
+
+                                {/* TEAM DETAILS SECTION */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">General Info</h4>
+                                    <div className={`grid grid-cols-2 gap-3 p-3 rounded-lg border ${isEditingSettings ? 'bg-slate-950 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Age Group</label>
+                                            {isEditingSettings ? (
+                                                <select className={inCls} value={data.ageGroup} onChange={e => setData(p => ({ ...p, ageGroup: e.target.value }))}>
+                                                    {["8U", "9U", "10U", "11U", "12U", "13U", "14U", "15U", "16U", "18U", "22U"].map(g => <option key={g} value={g}>{g}</option>)}
+                                                </select>
+                                            ) : (
+                                                <div className="text-slate-200 font-medium">{data.ageGroup}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Season</label>
+                                            {isEditingSettings ? (
+                                                <input className={inCls} value={data.season} onChange={e => setData(p => ({ ...p, season: e.target.value }))} placeholder="e.g. 2026" />
+                                            ) : (
+                                                <div className="text-slate-200 font-medium">{data.season}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Head Coach</label>
+                                            {isEditingSettings ? (
+                                                <input className={inCls} value={data.headCoach} onChange={e => setData(p => ({ ...p, headCoach: e.target.value }))} placeholder="Coach Name" />
+                                            ) : (
+                                                <div className="text-slate-200 font-medium">{data.headCoach || <span className="text-slate-600 italic">Not Set</span>}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <label className="block text-[10px] text-slate-500 uppercase font-bold mb-1">Manager</label>
+                                            {isEditingSettings ? (
+                                                <input className={inCls} value={data.manager} onChange={e => setData(p => ({ ...p, manager: e.target.value }))} placeholder="Manager Name" />
+                                            ) : (
+                                                <div className="text-slate-200 font-medium">{data.manager || <span className="text-slate-600 italic">Not Set</span>}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="col-span-2 pt-1">
+                                            {isEditingSettings ? (
+                                                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300 select-none bg-slate-900 p-2 rounded border border-slate-800">
+                                                    <input type="checkbox" checked={data.isTier2} onChange={e => setData(p => ({ ...p, isTier2: e.target.checked }))} className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-400 focus:ring-amber-400" />
+                                                    Tier 2 Team Status
+                                                </label>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-2 h-2 rounded-full ${data.isTier2 ? 'bg-amber-400' : 'bg-slate-700'}`}></div>
+                                                    <span className="text-xs text-slate-400">{data.isTier2 ? 'Tier 2 Team' : 'Standard Tier'}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <h3 className="text-sm font-bold text-slate-300 uppercase mb-2 mt-4">Fee Structure</h3>
-                                {Object.entries(data.feeStructure).map(([k, v]) => (
-                                    <div key={k} className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800 mb-2">
-                                        <label className="text-sm font-medium text-slate-300">{FEE_LABELS[k] || k}</label>
-                                        <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
+                                {/* FEE STRUCTURE SECTION */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fee Structure</h4>
+                                    <div className={`space-y-2 p-3 rounded-lg border ${isEditingSettings ? 'bg-slate-950 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
+                                        {Object.entries(data.feeStructure).map(([k, v]) => (
+                                            <div key={k} className="flex justify-between items-center py-1 border-b border-slate-800 last:border-0 last:pb-0">
+                                                <label className="text-sm text-slate-300">{FEE_LABELS[k] || k}</label>
+                                                {isEditingSettings ? (
+                                                    <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
+                                                ) : (
+                                                    <span className="font-mono text-emerald-400">{fmt(v)}</span>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                </div>
                             </div>
                         )}
+
                         {activeTab === 'save' && (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
