@@ -122,6 +122,7 @@ function App() {
     // A. STATE MANAGEMENT
     // ------------------------------------------
     // UI State
+    const [activeTab, setActiveTab] = useState('overview');
     const [data, setData] = useState(INITIAL_STATE);
     const [notification, setNotification] = useState(null);
 
