@@ -915,7 +915,7 @@ function App() {
                             {/* RESPONSIVE LIST */}
                             <div className="space-y-2">
                                 {/* MOBILE CARD VIEW */}
-                                <div className="md:hidden space-y-2 overflow-y-auto max-h-[65vh] pr-1">
+                                <div className="md:hidden space-y-2 overflow-y-auto max-h-[65vh] pr-1 hide-scrollbar">
                                     {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
                                         <div key={t.id} className={`p-3 rounded-lg border ${selectedTx.includes(t.id) ? 'bg-slate-800 border-emerald-500/50' : 'bg-slate-900 border-slate-800'}`}>
                                             <div className="flex justify-between items-start mb-2">
@@ -938,7 +938,7 @@ function App() {
                                 </div>
 
                                 {/* DESKTOP TABLE VIEW */}
-                                <div className="hidden md:block overflow-auto rounded-xl border border-slate-800 max-h-[75vh]">
+                                <div className="hidden md:block overflow-auto rounded-xl border border-slate-800 max-h-[75vh] hide-scrollbar">
                                     <table className="w-full text-left text-sm whitespace-nowrap">
                                         <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0 z-10"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-16"></th></tr></thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900">
@@ -1071,7 +1071,7 @@ function App() {
                             </div>
 
                             {/* DESKTOP TABLE VIEW */}
-                            <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-auto max-h-[75vh]">
+                            <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-auto max-h-[75vh] hide-scrollbar">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0 z-10"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-20"></th></tr></thead>
                                     <tbody className="divide-y divide-slate-800">
