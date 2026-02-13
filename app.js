@@ -980,23 +980,31 @@ function App() {
                                     return (
                                         <div key={p.id} className={`border rounded-lg p-3 space-y-3 ${isEditing ? 'bg-slate-900 border-amber-500/50' : 'bg-slate-900 border-slate-800'}`}>
                                             {/* HEADER: Name, Type, Number */}
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1 mr-2">
+                                            {/* HEADER: Name, Type, Number */}
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="flex-1 min-w-0">
                                                     {isEditing ? (
-                                                        <div className="flex gap-1 mb-1">
-                                                            <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
-                                                            <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                        <div className="flex flex-col gap-2 mb-1">
+                                                            <div className="flex gap-2">
+                                                                <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.firstName} onChange={e => updatePerson(p.id, 'firstName', e.target.value)} placeholder="First" />
+                                                                <input className={`${smInCls} flex-1 min-w-0 font-bold`} value={p.lastName} onChange={e => updatePerson(p.id, 'lastName', e.target.value)} placeholder="Last" />
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs text-slate-500">#</span>
+                                                                <input className={`${smInCls} w-12 text-center font-bold`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
+                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ml-auto ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
+                                                            </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="font-bold text-lg text-white mb-0.5">{p.firstName} {p.lastName}</div>
+                                                        <div>
+                                                            <div className="flex justify-between items-start">
+                                                                <div className="font-bold text-lg text-white mb-0.5 truncate pr-2">{p.firstName} {p.lastName}</div>
+                                                                <div className="text-xl font-black text-slate-500 whitespace-nowrap">#{p.jersey || '--'}</div>
+                                                            </div>
+                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
+                                                        </div>
                                                     )}
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${p.type === 'player' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}`}>{p.type}</span>
                                                 </div>
-                                                {isEditing ? (
-                                                    <input className={`${smInCls} w-10 text-center font-bold text-lg h-10`} type="text" placeholder="#" value={p.jersey || ''} onChange={e => updatePerson(p.id, 'jersey', e.target.value)} />
-                                                ) : (
-                                                    <div className="text-xl font-black text-slate-500">#{p.jersey || '--'}</div>
-                                                )}
                                             </div>
 
                                             {/* CONFIG: Package & Extras */}
