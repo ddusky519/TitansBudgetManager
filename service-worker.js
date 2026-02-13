@@ -1,4 +1,12 @@
-const CACHE_NAME = 'titans-budget-v57';
+// ==========================================
+// SERVICE WORKER (OFFLINE CAPABILITIES)
+// ==========================================
+// This file runs in the background to:
+// 1. Cache core assets (HTML, JS, CSS) so the app works offline.
+// 2. Intercept network requests and serve from cache if available (Offline-First).
+// 3. Handle updates by taking control immediately (SkipWaiting).
+
+const CACHE_NAME = 'titans-budget-v58';
 const urlsToCache = [
     './',
     './index.html',
@@ -17,6 +25,8 @@ const urlsToCache = [
     'https://cdn.jsdelivr.net/npm/pulltorefreshjs@0.1.22/dist/index.umd.min.js'
 ];
 
+// 1. INSTALL EVENT
+// Runs when browser sees a new SW version. Caches the "App Shell".
 self.addEventListener('install', event => {
     // Force immediate update
     self.skipWaiting();
@@ -29,6 +39,8 @@ self.addEventListener('install', event => {
     );
 });
 
+// 2. FETCH EVENT
+// Intercepts every network request. Returns cached version if found, otherwise fetches from network.
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
@@ -39,6 +51,8 @@ self.addEventListener('fetch', event => {
     );
 });
 
+// 3. ACTIVATE EVENT
+// Runs after Install. Cleans up old caches (v57, v56, etc.) to free space.
 self.addEventListener('activate', event => {
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(

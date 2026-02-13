@@ -65,7 +65,10 @@ const TrendingUp = createIcon('TrendingUp');
 const TrendingDown = createIcon('TrendingDown');
 const ArrowRight = createIcon('ArrowRight');
 
-// 3. Default Config
+// ==========================================
+// 3. CONFIGURATION & CONSTANTS
+// ==========================================
+// Default fees applied to new rosters. Can be overridden in Settings.
 const DEFAULT_FEES = {
     fullUniform: 850,
     partialUniform: 750,
@@ -111,9 +114,14 @@ const FEE_LABELS = {
     gamesAfter13: "Games After 13 Cost"
 };
 
-// 4. Main Component (Global Function)
+// ==========================================
+// 4. MAIN COMPONENT (ROOT)
+// ==========================================
 function App() {
-    const [activeTab, setActiveTab] = useState('overview');
+    // ------------------------------------------
+    // A. STATE MANAGEMENT
+    // ------------------------------------------
+    // UI State
     const [data, setData] = useState(INITIAL_STATE);
     const [notification, setNotification] = useState(null);
 
@@ -156,7 +164,10 @@ function App() {
         extraGamesCost: 0
     });
 
-    // Load Data
+    // ------------------------------------------
+    // B. DATA PERSISTENCE & LIFECYCLE
+    // ------------------------------------------
+    // Load Data on Mount
     useEffect(() => {
         const savedData = localStorage.getItem('titanBudget_v5');
         if (savedData) {
@@ -180,7 +191,7 @@ function App() {
         }
     }, []);
 
-    // Save & Calc
+    // Auto-Save & Recalculate on Data Change
     useEffect(() => {
         localStorage.setItem('titanBudget_v5', JSON.stringify(data));
         recalculateFinancials();
@@ -191,6 +202,14 @@ function App() {
         setTimeout(() => setNotification(null), 3000);
     };
 
+    // ------------------------------------------
+    // C. CORE FINANCIAL LOGIC ENGINE
+    // ------------------------------------------
+    // This function runs on every data update to calculate:
+    // 1. Total Budget Expenses
+    // 2. Per-Player Share
+    // 3. Individual Player Owed Amounts (Iterative Solver)
+    // 4. Bank Balance & Assets
     const recalculateFinancials = () => {
         const playerCount = (data.roster || []).filter(p => p.type === 'player').length;
 
@@ -233,7 +252,10 @@ function App() {
 
         const directTeamSponsorship = data.teamSponsorships.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 
-        // Iterative Solver
+        // --- ITERATIVE SOLVER FOR PLAYER SHARE ---
+        // We iterate to handle circular dependencies if any (though currently linear).
+        // Calculates exactly what each player owes based on:
+        // Base Fee + Extras + Share of Team Expenses - Sponsorships - Credits
         let currentOverflow = 0;
         let finalPerPlayerShare = 0;
         let playerResults = {};
@@ -280,7 +302,8 @@ function App() {
                     }
                 }
 
-                // Calculate Paid (from linked transactions)
+                // --- PAYMENT RECONCILIATION ---
+                // Match "Income" transactions linked to this player to reduce outstanding balance.
                 const paid = data.transactions
                     .filter(t => t.type === 'in' && t.playerId == person.id) // Loose equality for string/number mismatch
                     .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
@@ -331,13 +354,17 @@ function App() {
         });
     };
 
-    // Handlers
+    // ------------------------------------------
+    // D. ACTION HANDLERS
+    // ------------------------------------------
+    // Settings & Roster Handlers
     const updateFee = (k, v) => setData(p => ({ ...p, feeStructure: { ...p.feeStructure, [k]: parseFloat(v) || 0 } }));
     const addPerson = (type) => setData(p => ({ ...p, roster: [...p.roster, { id: Date.now(), type, firstName: '', lastName: '', jersey: '', packageType: type === 'player' ? 'full' : 'none', extras: [], sponsorship: 0, credit: 0 }] }));
     const updatePerson = (id, f, v) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, [f]: v } : i) }));
     const removePerson = (id) => window.confirm("Remove?") && setData(p => ({ ...p, roster: p.roster.filter(i => i.id !== id) }));
     const toggleExtra = (id, key) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, extras: i.extras?.includes(key) ? i.extras.filter(x => x !== key) : [...(i.extras || []), key] } : i) }));
 
+    // --- TRANSACTION HANDLERS ---
     const addTx = () => {
         if (!newTx.description || !newTx.amount) return;
 
@@ -443,7 +470,10 @@ function App() {
         reader.readAsText(file);
     };
 
-    // PDF Generation
+    // ------------------------------------------
+    // E. PDF GENERATION
+    // ------------------------------------------
+    // 1. Budget Report PDF
     const generatePDF = () => {
         if (!window.jspdf) {
             alert("PDF Library not loaded. Please refresh.");
@@ -575,7 +605,7 @@ function App() {
         doc.save(`TitansBudget_${data.season}_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
-    // Ledger PDF
+    // 2. Ledger Report PDF
     const generateLedgerPDF = () => {
         if (!window.jspdf) {
             alert("PDF Library not loaded. Please refresh.");
@@ -728,7 +758,11 @@ function App() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-10">
-            {/* HEADER */}
+            {/* ========================================== */}
+            {/* F. RENDER UI */}
+            {/* ========================================== */}
+
+            {/* --- HEADER & NAVIGATION --- */}
             <div className="bg-emerald-900 border-b border-emerald-800 p-4 sticky top-0 z-50 shadow-lg">
                 <div className="max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div className="text-center lg:text-left">
@@ -760,7 +794,10 @@ function App() {
             <div className="max-w-6xl mx-auto p-4 space-y-6">
                 {notification && <div className="fixed bottom-4 right-4 bg-amber-400 text-slate-900 px-6 py-3 rounded-lg shadow-xl z-50 font-bold border-2 border-amber-300 animate-bounce">{notification}</div>}
 
-                {/* OVERVIEW */}
+                {/* ------------------------------------------ */}
+                {/* 1. OVERVIEW TAB */}
+                {/* ------------------------------------------ */}
+                {/* High-level financial summary and player status scoreboard */}
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -826,7 +863,8 @@ function App() {
                             </div>
                         </div>
 
-                        {/* SCOREBOARD */}
+                        {/* --- PLAYER FEE SCOREBOARD --- */}
+                        {/* Visual grid showing who has paid and who owes money */}
                         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
                             <h3 className="text-sm font-bold text-slate-300 uppercase mb-3">Player Fee Scoreboard</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -861,7 +899,10 @@ function App() {
                     </div>
                 )}
 
-                {/* LEDGER */}
+                {/* ------------------------------------------ */}
+                {/* 2. LEDGER TAB */}
+                {/* ------------------------------------------ */}
+                {/* Transaction management: Add, Edit, Delete, and List History */}
                 {activeTab === 'ledger' && (
                     <div className="space-y-4">
                         {/* NEW TRANSACTION & ACTIONS */}
@@ -914,6 +955,8 @@ function App() {
                             {/* LIST */}
                             {/* RESPONSIVE LIST */}
                             <div className="space-y-2">
+                                {/* --- RESPONSIVE LIST VIEW --- */}
+                                {/* Switch between Card View (Mobile) and Table View (Desktop) */}
                                 {/* MOBILE CARD VIEW */}
                                 <div className="md:hidden space-y-2 overflow-y-auto max-h-[65vh] pr-1 hide-scrollbar">
                                     {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
@@ -962,7 +1005,10 @@ function App() {
                     </div>
                 )}
 
-                {/* ROSTER */}
+                {/* ------------------------------------------ */}
+                {/* 3. ROSTER TAB */}
+                {/* ------------------------------------------ */}
+                {/* Manage Players & Coaches. define Fees & Extras per person. */}
                 {activeTab === 'roster' && (
                     <div className="space-y-4">
                         <div className="flex gap-2 justify-end">
@@ -972,6 +1018,7 @@ function App() {
                         {/* RESPONSIVE ROSTER */}
                         <div className="space-y-4">
                             {/* MOBILE CARD VIEW */}
+                            {/* Optimized for touch targets and small screens */}
                             <div className="md:hidden space-y-3">
                                 {data.roster.map(p => {
                                     const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
@@ -1150,7 +1197,10 @@ function App() {
                     </div>
                 )}
 
-                {/* EXPENSES / BUDGET */}
+                {/* ------------------------------------------ */}
+                {/* 4. BUDGET / EXPENSES TAB */}
+                {/* ------------------------------------------ */}
+                {/* Define Budgeted Costs & Organization Fees */}
                 {activeTab === 'expenses' && (
                     <div className="space-y-4">
                         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
@@ -1196,7 +1246,10 @@ function App() {
                     </div>
                 )}
 
-                {/* SPONSORSHIPS */}
+                {/* ------------------------------------------ */}
+                {/* 5. SPONSORSHIPS TAB */}
+                {/* ------------------------------------------ */}
+                {/* Revenue sources not linked to specific players */}
                 {activeTab === 'sponsorships' && (
                     <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
                         <div className="flex justify-between mb-4"><h3 className="font-bold">Team Sponsors</h3><button onClick={addSpon} className="text-xs bg-amber-900 text-amber-400 px-2 rounded">+ Add</button></div>
@@ -1204,7 +1257,10 @@ function App() {
                     </div>
                 )}
 
-                {/* SETTINGS / SAVE */}
+                {/* ------------------------------------------ */}
+                {/* 6. SETTINGS & DATA TABS */}
+                {/* ------------------------------------------ */}
+                {/* Global Config, Backup/Restore, and Reset */}
                 {['settings', 'save'].includes(activeTab) && (
                     <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 space-y-4 max-w-lg mx-auto">
                         {activeTab === 'settings' && (
