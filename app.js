@@ -938,9 +938,9 @@ function App() {
                                 </div>
 
                                 {/* DESKTOP TABLE VIEW */}
-                                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-800">
+                                <div className="hidden md:block overflow-auto rounded-xl border border-slate-800 max-h-[75vh]">
                                     <table className="w-full text-left text-sm whitespace-nowrap">
-                                        <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-16"></th></tr></thead>
+                                        <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0 z-10"><tr><th className="w-8 p-3 text-center"><input type="checkbox" onChange={(e) => setSelectedTx(e.target.checked ? data.transactions.map(t => t.id) : [])} checked={selectedTx.length === data.transactions.length && data.transactions.length > 0} /></th><th className="p-3">Date</th><th className="p-3">Desc</th><th className="p-3 text-right">Amt</th><th className="w-16"></th></tr></thead>
                                         <tbody className="divide-y divide-slate-800 bg-slate-900">
                                             {data.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => (
                                                 <tr key={t.id} className={selectedTx.includes(t.id) ? 'bg-slate-800/50' : ''}>
@@ -1071,9 +1071,9 @@ function App() {
                             </div>
 
                             {/* DESKTOP TABLE VIEW */}
-                            <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
+                            <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-auto max-h-[75vh]">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
-                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-20"></th></tr></thead>
+                                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0 z-10"><tr><th className="p-3">Name</th><th className="p-3">Pkg</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Sponsor</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right text-amber-400">Owed</th><th className="w-20"></th></tr></thead>
                                     <tbody className="divide-y divide-slate-800">
                                         {data.roster.map(p => {
                                             const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0 };
