@@ -1,4 +1,4 @@
-const CACHE_NAME = 'titans-budget-v55';
+const CACHE_NAME = 'titans-budget-v56';
 const urlsToCache = [
     './',
     './index.html',
@@ -13,10 +13,13 @@ const urlsToCache = [
     'https://unpkg.com/@babel/standalone/babel.min.js',
     'https://unpkg.com/lucide@latest',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js'
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
+    'https://unpkg.com/pulltorefreshjs'
 ];
 
 self.addEventListener('install', event => {
+    // Force immediate update
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
@@ -47,6 +50,6 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim()) // Take control immediately
     );
 });
