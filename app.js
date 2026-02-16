@@ -94,6 +94,7 @@ const INITIAL_STATE = {
     expenses: [],
     teamSponsorships: [],
     transactions: [],
+    customTitansFees: [],
     feeStructure: { ...DEFAULT_FEES }
 };
 
@@ -186,6 +187,7 @@ function App() {
                     expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
                     teamSponsorships: Array.isArray(parsed.teamSponsorships) ? parsed.teamSponsorships : [],
                     transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+                    customTitansFees: Array.isArray(parsed.customTitansFees) ? parsed.customTitansFees : [],
                     feeStructure: { ...DEFAULT_FEES, ...(parsed.feeStructure || {}) }
                 }));
             } catch (e) {
@@ -244,14 +246,18 @@ function App() {
         // Extra Games
         const extraGamesCost = (data.extraGames || 0) * (data.feeStructure.gamesAfter13 || 0);
 
-        // Shared Expenses (Tournaments, Coach costs, etc. - divided by players)
-        const sharedExpensesForCalc = tournamentTotal + otherExpensesTotal + coachExpenses + extraGamesCost;
+        // Custom Titans Fees (New Dynamic Items)
+        const customTitansFeesTotal = (data.customTitansFees || []).reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
+
+        // Shared Expenses (Tournaments, Coach costs, extra games, custom fees, etc. - divided by players)
+        // NOTE: Custom Titans Fees are Organization costs, so they are shared expenses.
+        const sharedExpensesForCalc = tournamentTotal + otherExpensesTotal + coachExpenses + extraGamesCost + customTitansFeesTotal;
 
         // Total Budgeted Expenses (Includes everything)
         const totalBudgetedExpenses = sharedExpensesForCalc + playerTitansFees;
 
         // Total Consolidated Titans Fees (For Display)
-        const totalTitansFees = playerTitansFees + coachExpenses + extraGamesCost;
+        const totalTitansFees = playerTitansFees + coachExpenses + extraGamesCost + customTitansFeesTotal;
 
         const directTeamSponsorship = data.teamSponsorships.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 
@@ -444,9 +450,15 @@ function App() {
     const updateExp = (id, f, v) => setData(p => ({ ...p, expenses: p.expenses.map(e => e.id === id ? { ...e, [f]: v } : e) }));
     const removeExp = (id) => setData(p => ({ ...p, expenses: p.expenses.filter(e => e.id !== id) }));
 
-    const addSpon = () => setData(p => ({ ...p, teamSponsorships: [...p.teamSponsorships, { id: Date.now(), name: '', amount: 0 }] }));
-    const updateSpon = (id, f, v) => setData(p => ({ ...p, teamSponsorships: p.teamSponsorships.map(s => s.id === id ? { ...s, [f]: v } : s) }));
-    const removeSpon = (id) => setData(p => ({ ...p, teamSponsorships: p.teamSponsorships.filter(s => s.id !== id) }));
+    // SPONSORSHIP ACTIONS
+    const addSpon = () => setData(prev => ({ ...prev, teamSponsorships: [...prev.teamSponsorships, { id: Date.now(), name: '', amount: '' }] }));
+    const removeSpon = (id) => setData(prev => ({ ...prev, teamSponsorships: prev.teamSponsorships.filter(s => s.id !== id) }));
+    const updateSpon = (id, field, val) => setData(prev => ({ ...prev, teamSponsorships: prev.teamSponsorships.map(s => s.id === id ? { ...s, [field]: val } : s) }));
+
+    // CUSTOM TITANS FEES ACTIONS
+    const addCustomFee = () => setData(prev => ({ ...prev, customTitansFees: [...prev.customTitansFees, { id: Date.now(), name: '', cost: '' }] }));
+    const removeCustomFee = (id) => setData(prev => ({ ...prev, customTitansFees: prev.customTitansFees.filter(f => f.id !== id) }));
+    const updateCustomFee = (id, field, val) => setData(prev => ({ ...prev, customTitansFees: prev.customTitansFees.map(f => f.id === id ? { ...f, [field]: val } : f) }));
 
     const handleExport = () => {
         const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
@@ -1232,6 +1244,12 @@ function App() {
                                             <span>{fmt(financials.extraGamesCost)}</span>
                                         </div>
                                     </div>
+                                    {financials.customTitansFeesTotal > 0 && (
+                                        <div className="flex justify-between text-blue-300 pt-1 border-t border-slate-800 mt-1">
+                                            <span>Additional Fees:</span>
+                                            <span>{fmt(financials.customTitansFeesTotal)}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1431,6 +1449,54 @@ function App() {
                                                 )}
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+
+                                {/* ADDITIONAL ORGANIZATION FEES SECTION */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Additional Organization Fees</h4>
+                                        {isEditingSettings && (
+                                            <button onClick={addCustomFee} className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700 transition-colors flex items-center gap-1">
+                                                <Plus size={10} /> Add Fee
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className={`space-y-2 p-3 rounded-lg border ${isEditingSettings ? 'bg-slate-950 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
+                                        {data.customTitansFees.length > 0 ? (
+                                            data.customTitansFees.map(item => (
+                                                <div key={item.id} className="flex gap-2 items-center mb-1 last:mb-0">
+                                                    {isEditingSettings ? (
+                                                        <>
+                                                            <input
+                                                                className={`${smInCls} flex-1 min-w-0`}
+                                                                value={item.name}
+                                                                onChange={e => updateCustomFee(item.id, 'name', e.target.value)}
+                                                                placeholder="Fee Name (e.g. Insurance)"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                className={`${smInCls} w-24 text-right`}
+                                                                value={item.cost}
+                                                                onChange={e => updateCustomFee(item.id, 'cost', e.target.value)}
+                                                                placeholder="$"
+                                                            />
+                                                            <button onClick={() => removeCustomFee(item.id)} className="text-slate-500 hover:text-red-400 p-1">
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <div className="flex justify-between w-full text-sm">
+                                                            <span className="text-slate-300">{item.name || <span className="text-slate-600 italic">Unnamed Fee</span>}</span>
+                                                            <span className="font-mono text-emerald-400">{fmt(item.cost)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center text-xs text-slate-600 italic py-2">No additional fees configured.</div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
