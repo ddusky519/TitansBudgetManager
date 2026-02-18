@@ -192,6 +192,11 @@ function App() {
                     }));
                 }
 
+                // Clean up feeStructure (remove keys that are now Extras)
+                const cleanedFeeStructure = { ...DEFAULT_FEES, ...(parsed.feeStructure || {}) };
+                delete cleanedFeeStructure.thirdJersey;
+                delete cleanedFeeStructure.cageJacket;
+
                 setData(prev => ({
                     ...INITIAL_STATE,
                     ...parsed,
@@ -203,7 +208,7 @@ function App() {
                     transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
                     customTitansFees: Array.isArray(parsed.customTitansFees) ? parsed.customTitansFees : [],
                     availableExtras: loadedExtras,
-                    feeStructure: { ...DEFAULT_FEES, ...(parsed.feeStructure || {}) }
+                    feeStructure: cleanedFeeStructure
                 }));
             } catch (e) {
                 console.error("Failed to load local data", e);
