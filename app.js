@@ -68,16 +68,18 @@ const ArrowRight = createIcon('ArrowRight');
 // ==========================================
 // 3. CONFIGURATION & CONSTANTS
 // ==========================================
-// Default fees applied to new rosters. Can be overridden in Settings.
 const DEFAULT_FEES = {
     fullUniform: 850,
     partialUniform: 750,
     coachFull: 275,
     coachPartial: 65,
-    thirdJersey: 65,
-    cageJacket: 90,
     gamesAfter13: 150
 };
+
+const DEFAULT_EXTRAS = [
+    { id: 'thirdJersey', name: '3rd Jersey', cost: 65 },
+    { id: 'cageJacket', name: 'Cage Jacket', cost: 90 }
+];
 
 const INITIAL_STATE = {
     // Team Settings
@@ -95,6 +97,7 @@ const INITIAL_STATE = {
     teamSponsorships: [],
     transactions: [],
     customTitansFees: [],
+    availableExtras: [...DEFAULT_EXTRAS],
     feeStructure: { ...DEFAULT_FEES }
 };
 
@@ -110,8 +113,6 @@ const FEE_LABELS = {
     partialUniform: "Player Partial Uniform",
     coachFull: "Coach Full Package",
     coachPartial: "Coach Partial Package",
-    thirdJersey: "3rd Jersey Cost",
-    cageJacket: "Cage Jacket Cost",
     gamesAfter13: "Games After 13 Cost"
 };
 
@@ -178,6 +179,19 @@ function App() {
             try {
                 const parsed = JSON.parse(savedData);
                 // Merge with INITIAL_STATE to ensure all fields exist
+                // MIGRATION: Ensure availableExtras is populated if missing
+                let loadedExtras = Array.isArray(parsed.availableExtras) ? parsed.availableExtras : [];
+
+                // If migrating from older version where extras were part of feeStructure but not availableExtras
+                if (loadedExtras.length === 0) {
+                    // Check if we need to migrate old hardcoded fees into dynamic extras
+                    // We use DEFAULT_EXTRAS but override costs if they existed in the old feeStructure
+                    loadedExtras = DEFAULT_EXTRAS.map(def => ({
+                        ...def,
+                        cost: parsed.feeStructure && parsed.feeStructure[def.id] ? parsed.feeStructure[def.id] : def.cost
+                    }));
+                }
+
                 setData(prev => ({
                     ...INITIAL_STATE,
                     ...parsed,
@@ -188,6 +202,7 @@ function App() {
                     teamSponsorships: Array.isArray(parsed.teamSponsorships) ? parsed.teamSponsorships : [],
                     transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
                     customTitansFees: Array.isArray(parsed.customTitansFees) ? parsed.customTitansFees : [],
+                    availableExtras: loadedExtras,
                     feeStructure: { ...DEFAULT_FEES, ...(parsed.feeStructure || {}) }
                 }));
             } catch (e) {
@@ -227,8 +242,14 @@ function App() {
             let cost = 0;
             if (person.packageType === 'full') cost += data.feeStructure.coachFull;
             if (person.packageType === 'partial') cost += data.feeStructure.coachPartial;
-            if (person.extras?.includes('thirdJersey')) cost += data.feeStructure.thirdJersey;
-            if (person.extras?.includes('cageJacket')) cost += data.feeStructure.cageJacket;
+
+            // Dynamic Extras Calculation
+            if (person.extras && Array.isArray(person.extras)) {
+                person.extras.forEach(extraId => {
+                    const extraItem = data.availableExtras.find(e => e.id === extraId);
+                    if (extraItem) cost += (parseFloat(extraItem.cost) || 0);
+                });
+            }
             return total + cost;
         }, 0);
 
@@ -238,8 +259,14 @@ function App() {
             let cost = 0;
             if (person.packageType === 'full') cost += data.feeStructure.fullUniform;
             if (person.packageType === 'partial') cost += data.feeStructure.partialUniform;
-            if (person.extras?.includes('thirdJersey')) cost += data.feeStructure.thirdJersey;
-            if (person.extras?.includes('cageJacket')) cost += data.feeStructure.cageJacket;
+
+            // Dynamic Extras Calculation
+            if (person.extras && Array.isArray(person.extras)) {
+                person.extras.forEach(extraId => {
+                    const extraItem = data.availableExtras.find(e => e.id === extraId);
+                    if (extraItem) cost += (parseFloat(extraItem.cost) || 0);
+                });
+            }
             return total + cost;
         }, 0);
 
@@ -459,6 +486,21 @@ function App() {
     const addCustomFee = () => setData(prev => ({ ...prev, customTitansFees: [...prev.customTitansFees, { id: Date.now(), name: '', cost: '' }] }));
     const removeCustomFee = (id) => setData(prev => ({ ...prev, customTitansFees: prev.customTitansFees.filter(f => f.id !== id) }));
     const updateCustomFee = (id, field, val) => setData(prev => ({ ...prev, customTitansFees: prev.customTitansFees.map(f => f.id === id ? { ...f, [field]: val } : f) }));
+
+    // PLAYER EXTRA ACTIONS (Dynamic Fee Structure)
+    const addExtra = () => setData(prev => ({ ...prev, availableExtras: [...prev.availableExtras, { id: Date.now().toString(), name: '', cost: '' }] }));
+    const removeExtra = (id) => {
+        setData(prev => ({
+            ...prev,
+            availableExtras: prev.availableExtras.filter(e => e.id !== id),
+            // Also remove this extra from any players who have it selected
+            roster: prev.roster.map(p => ({
+                ...p,
+                extras: p.extras ? p.extras.filter(eId => eId !== id) : []
+            }))
+        }));
+    };
+    const updateExtra = (id, field, val) => setData(prev => ({ ...prev, availableExtras: prev.availableExtras.map(e => e.id === id ? { ...e, [field]: val } : e) }));
 
     const handleExport = () => {
         const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
@@ -1082,13 +1124,32 @@ function App() {
                                                 <div>
                                                     <div className="text-[10px] text-slate-500 uppercase mb-1">Extras</div>
                                                     {isEditing ? (
-                                                        <div className="flex flex-col gap-1">
-                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey') || false} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket') || false} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                        <div className="space-y-1">
+                                                            {data.availableExtras && data.availableExtras.map(extra => (
+                                                                <label key={extra.id} className="flex items-center gap-2 cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={p.extras?.includes(extra.id) || false}
+                                                                        onChange={e => {
+                                                                            const newExtras = e.target.checked
+                                                                                ? [...(p.extras || []), extra.id]
+                                                                                : (p.extras || []).filter(eid => eid !== extra.id);
+                                                                            updatePerson(p.id, 'extras', newExtras);
+                                                                        }}
+                                                                        className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                                                                    />
+                                                                    <span>{extra.name} <span className="text-emerald-500 text-[10px]">({fmt(extra.cost)})</span></span>
+                                                                </label>
+                                                            ))}
                                                         </div>
                                                     ) : (
-                                                        <div className="text-slate-300">
-                                                            {p.extras?.length > 0 ? p.extras.map(e => e === 'thirdJersey' ? '3rd Jersey' : 'Cage Jacket').join(', ') : <span className="text-slate-600 italic">None</span>}
+                                                        <div className="text-slate-300 text-[10px]">
+                                                            {p.extras?.length > 0 ? (
+                                                                p.extras.map(eid => {
+                                                                    const ext = data.availableExtras.find(ae => ae.id === eid);
+                                                                    return ext ? ext.name : eid;
+                                                                }).join(', ')
+                                                            ) : <span className="text-slate-600 italic">None</span>}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1449,6 +1510,54 @@ function App() {
                                                 )}
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+
+                                {/* PLAYER EXTRAS SECTION (Dynamic) */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Player Extras / Add-ons</h4>
+                                        {isEditingSettings && (
+                                            <button onClick={addExtra} className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700 transition-colors flex items-center gap-1">
+                                                <Plus size={10} /> Add Item
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className={`space-y-2 p-3 rounded-lg border ${isEditingSettings ? 'bg-slate-950 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
+                                        {data.availableExtras && data.availableExtras.length > 0 ? (
+                                            data.availableExtras.map(item => (
+                                                <div key={item.id} className="flex gap-2 items-center mb-1 last:mb-0">
+                                                    {isEditingSettings ? (
+                                                        <>
+                                                            <input
+                                                                className={`${smInCls} flex-1 min-w-0`}
+                                                                value={item.name}
+                                                                onChange={e => updateExtra(item.id, 'name', e.target.value)}
+                                                                placeholder="Item Name"
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                className={`${smInCls} w-24 text-right`}
+                                                                value={item.cost}
+                                                                onChange={e => updateExtra(item.id, 'cost', e.target.value)}
+                                                                placeholder="$"
+                                                            />
+                                                            <button onClick={() => removeExtra(item.id)} className="text-slate-500 hover:text-red-400 p-1" title="Remove Item">
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <div className="flex justify-between w-full text-sm">
+                                                            <span className="text-slate-300">{item.name || <span className="text-slate-600 italic">Unnamed Item</span>}</span>
+                                                            <span className="font-mono text-emerald-400">{fmt(item.cost)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center text-xs text-slate-600 italic py-2">No extra items configured.</div>
+                                        )}
                                     </div>
                                 </div>
 
