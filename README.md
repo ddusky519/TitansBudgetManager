@@ -39,14 +39,14 @@ This application is a **Progressive Web App (PWA)**. You can install it on your 
 ### 1. Setup (Gear Icon ⚙️)
 Start here to configure your season.
 -   **Team Details**: Set your Age Group (e.g., 18U) and Season Year.
--   **Fee Structure**: Define the base cost for "Full Uniform" and "Coach Packages".
+-   **Fee Structure**: Add and customize fee items for Players ("Player - XXX") and Coaches ("Coach - XXX"), plus configure the Extra Games rate.
 -   **Player Extras**: Add optional items like "Team Bag" or "Helmet" that players can purchase.
 -   **Organization Fees**: Add overhead costs (Insurance, Website, etc.) that are shared by the team.
 
 ### 2. Roster (Users Icon 👥)
 Add your players and coaches.
 -   **Add Person**: Click `+` to add a Player or Coach.
--   **Packages**: Select "Full" or "Partial" package.
+-   **Packages / Items**: Select the specific item the player or coach is getting from the dropdown (dynamically populated from Fee Structure).
 -   **Extras**: Check any extra items they are purchasing (e.g., 3rd Jersey).
 -   The app effectively calculates their individual "Share" of the budget.
 

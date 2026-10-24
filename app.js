@@ -68,6 +68,13 @@ const ArrowRight = createIcon('ArrowRight');
 // ==========================================
 // 3. CONFIGURATION & CONSTANTS
 // ==========================================
+const DEFAULT_FEE_STRUCTURE = [
+    { id: 'fullUniform', type: 'player', name: 'Player - Full Uniform', cost: 850 },
+    { id: 'partialUniform', type: 'player', name: 'Player - Partial Uniform', cost: 750 },
+    { id: 'coachFull', type: 'coach', name: 'Coach - Full Package', cost: 275 },
+    { id: 'coachPartial', type: 'coach', name: 'Coach - Partial Package', cost: 65 }
+];
+
 const DEFAULT_FEES = {
     fullUniform: 850,
     partialUniform: 750,
@@ -89,6 +96,7 @@ const INITIAL_STATE = {
     manager: "",
     season: "2026",
     extraGames: 0,
+    extraGamesFee: 150,
 
     // Data
     roster: [],
@@ -98,7 +106,7 @@ const INITIAL_STATE = {
     transactions: [],
     customTitansFees: [],
     availableExtras: [...DEFAULT_EXTRAS],
-    feeStructure: { ...DEFAULT_FEES }
+    feeStructure: [...DEFAULT_FEE_STRUCTURE]
 };
 
 const CATEGORIES = {
@@ -106,14 +114,90 @@ const CATEGORIES = {
     expense: ["Tournament Fee", "Uniforms/Apparel", "Equipment", "Hotel/Travel", "Umpire Fees", "Admin/Bank Fees", "Titan Fees", "Other Expense"]
 };
 
-
-
 const FEE_LABELS = {
     fullUniform: "Player Full Uniform",
     partialUniform: "Player Partial Uniform",
     coachFull: "Coach Full Package",
     coachPartial: "Coach Partial Package",
     gamesAfter13: "Games After 13 Cost"
+};
+
+// Data normalization helper for migration & backups
+const normalizeLoadedData = (parsed) => {
+    if (!parsed || typeof parsed !== 'object') return { ...INITIAL_STATE };
+
+    // Extras migration
+    let loadedExtras = Array.isArray(parsed.availableExtras) ? parsed.availableExtras : [];
+    if (loadedExtras.length === 0) {
+        loadedExtras = DEFAULT_EXTRAS.map(def => ({
+            ...def,
+            cost: parsed.feeStructure && parsed.feeStructure[def.id] ? parsed.feeStructure[def.id] : def.cost
+        }));
+    }
+
+    // Fee Structure migration (from legacy object or array)
+    let loadedFeeStructure = parsed.feeStructure;
+    let extraGamesFee = parsed.extraGamesFee !== undefined ? parseFloat(parsed.extraGamesFee) : 150;
+
+    if (!Array.isArray(loadedFeeStructure)) {
+        if (loadedFeeStructure && typeof loadedFeeStructure === 'object') {
+            if (loadedFeeStructure.gamesAfter13 !== undefined) {
+                extraGamesFee = parseFloat(loadedFeeStructure.gamesAfter13) || 150;
+            }
+            loadedFeeStructure = [
+                { id: 'fullUniform', type: 'player', name: 'Player - Full Uniform', cost: parseFloat(loadedFeeStructure.fullUniform) || 850 },
+                { id: 'partialUniform', type: 'player', name: 'Player - Partial Uniform', cost: parseFloat(loadedFeeStructure.partialUniform) || 750 },
+                { id: 'coachFull', type: 'coach', name: 'Coach - Full Package', cost: parseFloat(loadedFeeStructure.coachFull) || 275 },
+                { id: 'coachPartial', type: 'coach', name: 'Coach - Partial Package', cost: parseFloat(loadedFeeStructure.coachPartial) || 65 }
+            ];
+        } else {
+            loadedFeeStructure = [...DEFAULT_FEE_STRUCTURE];
+        }
+    } else {
+        loadedFeeStructure = loadedFeeStructure.map(item => {
+            let type = item.type;
+            if (!type) {
+                type = (item.name && item.name.toLowerCase().startsWith('coach')) ? 'coach' : 'player';
+            }
+            return {
+                id: item.id || ('fee_' + Date.now().toString() + '_' + Math.random().toString(36).substring(2, 7)),
+                type,
+                name: item.name || (type === 'coach' ? 'Coach - Item' : 'Player - Item'),
+                cost: item.cost !== undefined && item.cost !== '' ? (parseFloat(item.cost) || 0) : ''
+            };
+        });
+    }
+
+    // Roster migration (convert legacy packageType 'full'/'partial'/'part' to IDs if applicable)
+    const loadedRoster = (Array.isArray(parsed.roster) ? parsed.roster : []).map(p => {
+        let pkg = p.packageType;
+        if (p.type === 'player') {
+            if (pkg === 'full') pkg = 'fullUniform';
+            else if (pkg === 'partial' || pkg === 'part') pkg = 'partialUniform';
+        } else if (p.type === 'coach') {
+            if (pkg === 'full') pkg = 'coachFull';
+            else if (pkg === 'partial' || pkg === 'part') pkg = 'coachPartial';
+        }
+        return {
+            ...p,
+            packageType: pkg || '',
+            extras: Array.isArray(p.extras) ? p.extras : []
+        };
+    });
+
+    return {
+        ...INITIAL_STATE,
+        ...parsed,
+        extraGamesFee,
+        roster: loadedRoster,
+        tournaments: Array.isArray(parsed.tournaments) ? parsed.tournaments : [],
+        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+        teamSponsorships: Array.isArray(parsed.teamSponsorships) ? parsed.teamSponsorships : [],
+        transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+        customTitansFees: Array.isArray(parsed.customTitansFees) ? parsed.customTitansFees : [],
+        availableExtras: loadedExtras,
+        feeStructure: loadedFeeStructure
+    };
 };
 
 // ==========================================
@@ -178,38 +262,7 @@ function App() {
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
-                // Merge with INITIAL_STATE to ensure all fields exist
-                // MIGRATION: Ensure availableExtras is populated if missing
-                let loadedExtras = Array.isArray(parsed.availableExtras) ? parsed.availableExtras : [];
-
-                // If migrating from older version where extras were part of feeStructure but not availableExtras
-                if (loadedExtras.length === 0) {
-                    // Check if we need to migrate old hardcoded fees into dynamic extras
-                    // We use DEFAULT_EXTRAS but override costs if they existed in the old feeStructure
-                    loadedExtras = DEFAULT_EXTRAS.map(def => ({
-                        ...def,
-                        cost: parsed.feeStructure && parsed.feeStructure[def.id] ? parsed.feeStructure[def.id] : def.cost
-                    }));
-                }
-
-                // Clean up feeStructure (remove keys that are now Extras)
-                const cleanedFeeStructure = { ...DEFAULT_FEES, ...(parsed.feeStructure || {}) };
-                delete cleanedFeeStructure.thirdJersey;
-                delete cleanedFeeStructure.cageJacket;
-
-                setData(prev => ({
-                    ...INITIAL_STATE,
-                    ...parsed,
-                    // Ensure arrays are actually arrays
-                    roster: Array.isArray(parsed.roster) ? parsed.roster : [],
-                    tournaments: Array.isArray(parsed.tournaments) ? parsed.tournaments : [],
-                    expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
-                    teamSponsorships: Array.isArray(parsed.teamSponsorships) ? parsed.teamSponsorships : [],
-                    transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-                    customTitansFees: Array.isArray(parsed.customTitansFees) ? parsed.customTitansFees : [],
-                    availableExtras: loadedExtras,
-                    feeStructure: cleanedFeeStructure
-                }));
+                setData(normalizeLoadedData(parsed));
             } catch (e) {
                 console.error("Failed to load local data", e);
             }
@@ -225,6 +278,26 @@ function App() {
     const showNotification = (msg) => {
         setNotification(msg);
         setTimeout(() => setNotification(null), 3000);
+    };
+
+    // Helper: Match person packageType to Fee Structure item (with legacy fallbacks)
+    const getPersonFeeItem = (person) => {
+        if (!person || !person.packageType || person.packageType === 'none') return null;
+        if (!Array.isArray(data.feeStructure)) return null;
+
+        // 1. Direct match by ID
+        let item = data.feeStructure.find(f => f.id === person.packageType);
+        if (item) return item;
+
+        // 2. Legacy fallback mapping
+        if (person.type === 'player') {
+            if (person.packageType === 'full') return data.feeStructure.find(f => f.id === 'fullUniform');
+            if (person.packageType === 'partial' || person.packageType === 'part') return data.feeStructure.find(f => f.id === 'partialUniform');
+        } else if (person.type === 'coach') {
+            if (person.packageType === 'full') return data.feeStructure.find(f => f.id === 'coachFull');
+            if (person.packageType === 'partial' || person.packageType === 'part') return data.feeStructure.find(f => f.id === 'coachPartial');
+        }
+        return null;
     };
 
     // ------------------------------------------
@@ -245,13 +318,13 @@ function App() {
         const coachExpenses = (data.roster || []).reduce((total, person) => {
             if (person.type !== 'coach') return total;
             let cost = 0;
-            if (person.packageType === 'full') cost += data.feeStructure.coachFull;
-            if (person.packageType === 'partial') cost += data.feeStructure.coachPartial;
+            const feeItem = getPersonFeeItem(person);
+            if (feeItem) cost += (parseFloat(feeItem.cost) || 0);
 
             // Dynamic Extras Calculation
             if (person.extras && Array.isArray(person.extras)) {
                 person.extras.forEach(extraId => {
-                    const extraItem = data.availableExtras.find(e => e.id === extraId);
+                    const extraItem = (data.availableExtras || []).find(e => e.id === extraId);
                     if (extraItem) cost += (parseFloat(extraItem.cost) || 0);
                 });
             }
@@ -262,13 +335,13 @@ function App() {
         const playerTitansFees = (data.roster || []).reduce((total, person) => {
             if (person.type !== 'player') return total;
             let cost = 0;
-            if (person.packageType === 'full') cost += data.feeStructure.fullUniform;
-            if (person.packageType === 'partial') cost += data.feeStructure.partialUniform;
+            const feeItem = getPersonFeeItem(person);
+            if (feeItem) cost += (parseFloat(feeItem.cost) || 0);
 
             // Dynamic Extras Calculation
             if (person.extras && Array.isArray(person.extras)) {
                 person.extras.forEach(extraId => {
-                    const extraItem = data.availableExtras.find(e => e.id === extraId);
+                    const extraItem = (data.availableExtras || []).find(e => e.id === extraId);
                     if (extraItem) cost += (parseFloat(extraItem.cost) || 0);
                 });
             }
@@ -276,7 +349,8 @@ function App() {
         }, 0);
 
         // Extra Games
-        const extraGamesCost = (data.extraGames || 0) * (data.feeStructure.gamesAfter13 || 0);
+        const extraGamesRate = data.extraGamesFee !== undefined ? (parseFloat(data.extraGamesFee) || 0) : 150;
+        const extraGamesCost = (data.extraGames || 0) * extraGamesRate;
 
         // Custom Titans Fees (New Dynamic Items)
         const customTitansFeesTotal = (data.customTitansFees || []).reduce((sum, item) => sum + (parseFloat(item.cost) || 0), 0);
@@ -314,18 +388,21 @@ function App() {
                 const sponsorship = parseFloat(person.sponsorship) || 0;
                 const credit = parseFloat(person.credit) || 0;
 
+                const feeItem = getPersonFeeItem(person);
+                base = feeItem ? (parseFloat(feeItem.cost) || 0) : 0;
+
                 if (person.type === 'player') {
-                    if (person.packageType === 'full') base = data.feeStructure.fullUniform;
-                    if (person.packageType === 'partial') base = data.feeStructure.partialUniform;
                     share = finalPerPlayerShare;
                 } else {
-                    if (person.packageType === 'full') base = data.feeStructure.coachFull;
-                    if (person.packageType === 'partial') base = data.feeStructure.coachPartial;
                     share = 0;
                 }
 
-                if (person.extras?.includes('thirdJersey')) extras += data.feeStructure.thirdJersey;
-                if (person.extras?.includes('cageJacket')) extras += data.feeStructure.cageJacket;
+                if (person.extras && Array.isArray(person.extras)) {
+                    person.extras.forEach(extraId => {
+                        const extraItem = (data.availableExtras || []).find(e => e.id === extraId);
+                        if (extraItem) extras += (parseFloat(extraItem.cost) || 0);
+                    });
+                }
 
                 const grossLiability = (person.type === 'player') ? (base + extras + share) : 0;
 
@@ -398,9 +475,83 @@ function App() {
     // ------------------------------------------
     // D. ACTION HANDLERS
     // ------------------------------------------
-    // Settings & Roster Handlers
-    const updateFee = (k, v) => setData(p => ({ ...p, feeStructure: { ...p.feeStructure, [k]: parseFloat(v) || 0 } }));
-    const addPerson = (type) => setData(p => ({ ...p, roster: [...p.roster, { id: Date.now(), type, firstName: '', lastName: '', jersey: '', packageType: type === 'player' ? 'full' : 'none', extras: [], sponsorship: 0, credit: 0 }] }));
+    // FEE STRUCTURE ACTIONS (Dynamic Fee Structure)
+    const addFeeItem = (type = 'player') => {
+        const prefix = type === 'coach' ? 'Coach - ' : 'Player - ';
+        const defaultName = prefix + 'New Item';
+        setData(prev => ({
+            ...prev,
+            feeStructure: [
+                ...(Array.isArray(prev.feeStructure) ? prev.feeStructure : []),
+                { id: 'fee_' + Date.now().toString(), type, name: defaultName, cost: '' }
+            ]
+        }));
+    };
+
+    const removeFeeItem = (id) => {
+        setData(prev => ({
+            ...prev,
+            feeStructure: (Array.isArray(prev.feeStructure) ? prev.feeStructure : []).filter(item => item.id !== id),
+            roster: (prev.roster || []).map(p => {
+                if (p.packageType === id) {
+                    return { ...p, packageType: '' };
+                }
+                return p;
+            })
+        }));
+    };
+
+    const updateFeeItem = (id, field, val) => {
+        setData(prev => ({
+            ...prev,
+            feeStructure: (Array.isArray(prev.feeStructure) ? prev.feeStructure : []).map(item => {
+                if (item.id !== id) return item;
+                if (field === 'type') {
+                    const newType = val;
+                    let newName = item.name || '';
+                    if (newType === 'coach') {
+                        if (newName.startsWith('Player - ')) newName = 'Coach - ' + newName.slice(9);
+                        else if (!newName.startsWith('Coach - ')) newName = 'Coach - ' + newName;
+                    } else {
+                        if (newName.startsWith('Coach - ')) newName = 'Player - ' + newName.slice(8);
+                        else if (!newName.startsWith('Player - ')) newName = 'Player - ' + newName;
+                    }
+                    return { ...item, type: newType, name: newName };
+                }
+                if (field === 'name') {
+                    let detectedType = item.type;
+                    if (val.toLowerCase().startsWith('coach')) detectedType = 'coach';
+                    else if (val.toLowerCase().startsWith('player')) detectedType = 'player';
+                    return { ...item, name: val, type: detectedType };
+                }
+                if (field === 'cost') {
+                    return { ...item, cost: val };
+                }
+                return { ...item, [field]: val };
+            })
+        }));
+    };
+
+    // Roster Handlers
+    const addPerson = (type) => setData(p => {
+        const playerItem = (Array.isArray(p.feeStructure) ? p.feeStructure.find(f => f.type === 'player' || f.name.toLowerCase().startsWith('player')) : null);
+        const defaultPkg = type === 'player' ? (playerItem ? playerItem.id : 'fullUniform') : '';
+        return {
+            ...p,
+            roster: [...p.roster, {
+                id: Date.now(),
+                type,
+                firstName: '',
+                lastName: '',
+                jersey: '',
+                packageType: defaultPkg,
+                extras: [],
+                sponsorship: 0,
+                credit: 0
+            }]
+        };
+    });
+
     const updatePerson = (id, f, v) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, [f]: v } : i) }));
     const removePerson = (id) => window.confirm("Remove?") && setData(p => ({ ...p, roster: p.roster.filter(i => i.id !== id) }));
     const toggleExtra = (id, key) => setData(p => ({ ...p, roster: p.roster.map(i => i.id === id ? { ...i, extras: i.extras?.includes(key) ? i.extras.filter(x => x !== key) : [...(i.extras || []), key] } : i) }));
@@ -523,9 +674,7 @@ function App() {
         reader.onload = (evt) => {
             try {
                 const parsed = JSON.parse(evt.target.result);
-                if (!parsed.transactions) parsed.transactions = [];
-                if (!parsed.teamSponsorships) parsed.teamSponsorships = [];
-                setData(parsed);
+                setData(normalizeLoadedData(parsed));
                 showNotification("Backup Loaded");
             } catch (e) { alert("Invalid File"); }
         };
@@ -639,10 +788,12 @@ function App() {
 
         const playerRows = data.roster.filter(p => p.type === 'player').map(p => {
             const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0, base: 0, extras: 0, sponsorship: 0, credit: 0 };
+            const feeItem = getPersonFeeItem(p);
+            const pkgName = feeItem ? feeItem.name : (p.packageType && p.packageType !== 'none' ? p.packageType : 'None');
             return [
                 `${p.firstName} ${p.lastName}`,
                 `#${p.jersey}`,
-                p.packageType === 'full' ? 'Full ($850)' : 'Part ($750)',
+                pkgName,
                 fmt(f.extras),
                 fmt(f.sponsorship),
                 fmt(f.credit),
@@ -1119,11 +1270,30 @@ function App() {
                                             {/* CONFIG: Package & Extras */}
                                             <div className="grid grid-cols-2 gap-2 text-xs border-t border-slate-800 pt-2">
                                                 <div>
-                                                    <div className="text-[10px] text-slate-500 uppercase mb-1">Package</div>
+                                                    <div className="text-[10px] text-slate-500 uppercase mb-1">{p.type === 'coach' ? 'Coach Package' : 'Player Package'}</div>
                                                     {isEditing ? (
-                                                        <select className={`${smInCls} w-full`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Partial</option></select>
+                                                        <select
+                                                            className={`${smInCls} w-full`}
+                                                            value={p.packageType || ''}
+                                                            onChange={e => updatePerson(p.id, 'packageType', e.target.value)}
+                                                        >
+                                                            <option value="">None ($0)</option>
+                                                            {(data.feeStructure || [])
+                                                                .filter(item => p.type === 'player'
+                                                                    ? (item.type === 'player' || item.name.toLowerCase().startsWith('player'))
+                                                                    : (item.type === 'coach' || item.name.toLowerCase().startsWith('coach'))
+                                                                )
+                                                                .map(item => (
+                                                                    <option key={item.id} value={item.id}>
+                                                                        {item.name} ({fmt(item.cost)})
+                                                                    </option>
+                                                                ))
+                                                            }
+                                                        </select>
                                                     ) : (
-                                                        <div className="text-slate-300 capitalize">{p.packageType}</div>
+                                                        <div className="text-slate-300 font-medium truncate">
+                                                            {getPersonFeeItem(p)?.name || (p.packageType && p.packageType !== 'none' ? p.packageType : <span className="text-slate-600 italic">None</span>)}
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <div>
@@ -1241,16 +1411,51 @@ function App() {
                                                     <td className="p-3">
                                                         {isEditing ? (
                                                             <div className="space-y-1">
-                                                                <select className={`${smInCls} w-24 mb-1`} value={p.packageType} onChange={e => updatePerson(p.id, 'packageType', e.target.value)}><option value="full">Full</option><option value="partial">Part</option></select>
+                                                                <select
+                                                                    className={`${smInCls} w-full min-w-[140px] max-w-[200px] mb-1`}
+                                                                    value={p.packageType || ''}
+                                                                    onChange={e => updatePerson(p.id, 'packageType', e.target.value)}
+                                                                >
+                                                                    <option value="">None ($0)</option>
+                                                                    {(data.feeStructure || [])
+                                                                        .filter(item => p.type === 'player'
+                                                                            ? (item.type === 'player' || item.name.toLowerCase().startsWith('player'))
+                                                                            : (item.type === 'coach' || item.name.toLowerCase().startsWith('coach'))
+                                                                        )
+                                                                        .map(item => (
+                                                                            <option key={item.id} value={item.id}>
+                                                                                {item.name} ({fmt(item.cost)})
+                                                                            </option>
+                                                                        ))
+                                                                    }
+                                                                </select>
                                                                 <div className="flex flex-col gap-1">
-                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('thirdJersey') || false} onChange={() => toggleExtra(p.id, 'thirdJersey')} /> 3rd Jersey</label>
-                                                                    <label className="text-[10px] flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={p.extras?.includes('cageJacket') || false} onChange={() => toggleExtra(p.id, 'cageJacket')} /> Cage Jacket</label>
+                                                                    {(data.availableExtras || []).map(extra => (
+                                                                        <label key={extra.id} className="text-[10px] flex items-center gap-1 cursor-pointer">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={p.extras?.includes(extra.id) || false}
+                                                                                onChange={() => toggleExtra(p.id, extra.id)}
+                                                                                className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                                                                            />
+                                                                            <span>{extra.name}</span>
+                                                                        </label>
+                                                                    ))}
                                                                 </div>
                                                             </div>
                                                         ) : (
                                                             <div className="text-xs space-y-1">
-                                                                <div className="capitalize font-medium text-slate-300">{p.packageType === 'part' ? 'Partial' : p.packageType}</div>
-                                                                <div className="text-slate-500 text-[10px]">{p.extras?.length > 0 ? p.extras.map(e => e === 'thirdJersey' ? '3rd' : 'Jacket').join(', ') : '-'}</div>
+                                                                <div className="font-medium text-slate-300 truncate max-w-[180px]" title={getPersonFeeItem(p)?.name || ''}>
+                                                                    {getPersonFeeItem(p)?.name || (p.packageType && p.packageType !== 'none' ? p.packageType : <span className="text-slate-600 italic">None</span>)}
+                                                                </div>
+                                                                <div className="text-slate-500 text-[10px]">
+                                                                    {p.extras?.length > 0 ? (
+                                                                        p.extras.map(eid => {
+                                                                            const ext = data.availableExtras.find(ae => ae.id === eid);
+                                                                            return ext ? ext.name : eid;
+                                                                        }).join(', ')
+                                                                    ) : '-'}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </td>
@@ -1503,18 +1708,96 @@ function App() {
 
                                 {/* FEE STRUCTURE SECTION */}
                                 <div className="space-y-3">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fee Structure</h4>
-                                    <div className={`space-y-2 p-3 rounded-lg border ${isEditingSettings ? 'bg-slate-950 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
-                                        {Object.entries(data.feeStructure).map(([k, v]) => (
-                                            <div key={k} className="flex justify-between items-center py-1 border-b border-slate-800 last:border-0 last:pb-0">
-                                                <label className="text-sm text-slate-300">{FEE_LABELS[k] || k}</label>
-                                                {isEditingSettings ? (
-                                                    <input type="number" className={`${smInCls} w-24 text-right`} value={v} onChange={e => updateFee(k, e.target.value)} />
-                                                ) : (
-                                                    <span className="font-mono text-emerald-400">{fmt(v)}</span>
-                                                )}
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fee Structure</h4>
+                                            <p className="text-[10px] text-slate-500">Player fees: "Player - XXX" | Coach fees: "Coach - XXX"</p>
+                                        </div>
+                                        {isEditingSettings && (
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => addFeeItem('player')}
+                                                    className="text-[10px] bg-blue-900/60 hover:bg-blue-800 text-blue-200 px-2 py-1 rounded border border-blue-700 transition-colors flex items-center gap-1"
+                                                >
+                                                    <Plus size={10} /> + Player Fee
+                                                </button>
+                                                <button
+                                                    onClick={() => addFeeItem('coach')}
+                                                    className="text-[10px] bg-purple-900/60 hover:bg-purple-800 text-purple-200 px-2 py-1 rounded border border-purple-700 transition-colors flex items-center gap-1"
+                                                >
+                                                    <Plus size={10} /> + Coach Fee
+                                                </button>
                                             </div>
-                                        ))}
+                                        )}
+                                    </div>
+
+                                    <div className={`space-y-2 p-3 rounded-lg border ${isEditingSettings ? 'bg-slate-950 border-amber-500/30' : 'bg-slate-950/50 border-slate-800'}`}>
+                                        {Array.isArray(data.feeStructure) && data.feeStructure.length > 0 ? (
+                                            data.feeStructure.map(item => (
+                                                <div key={item.id} className="flex gap-2 items-center mb-1 last:mb-0">
+                                                    {isEditingSettings ? (
+                                                        <>
+                                                            <select
+                                                                className={`${smInCls} w-24 text-xs font-bold ${item.type === 'coach' ? 'text-purple-300 border-purple-800' : 'text-blue-300 border-blue-800'}`}
+                                                                value={item.type || (item.name?.toLowerCase().startsWith('coach') ? 'coach' : 'player')}
+                                                                onChange={e => updateFeeItem(item.id, 'type', e.target.value)}
+                                                            >
+                                                                <option value="player">Player</option>
+                                                                <option value="coach">Coach</option>
+                                                            </select>
+                                                            <input
+                                                                className={`${smInCls} flex-1 min-w-0`}
+                                                                value={item.name}
+                                                                onChange={e => updateFeeItem(item.id, 'name', e.target.value)}
+                                                                placeholder={item.type === 'coach' ? "Coach - Item Name" : "Player - Item Name"}
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                className={`${smInCls} w-24 text-right`}
+                                                                value={item.cost}
+                                                                onChange={e => updateFeeItem(item.id, 'cost', e.target.value)}
+                                                                placeholder="$"
+                                                            />
+                                                            <button
+                                                                onClick={() => removeFeeItem(item.id)}
+                                                                className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                                                                title="Remove Fee Item"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <div className="flex justify-between items-center w-full text-sm">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${item.type === 'coach' ? 'bg-purple-950 text-purple-300 border border-purple-800' : 'bg-blue-950 text-blue-300 border border-blue-800'}`}>
+                                                                    {item.type === 'coach' ? 'Coach' : 'Player'}
+                                                                </span>
+                                                                <span className="text-slate-300">{item.name || <span className="text-slate-600 italic">Unnamed Fee</span>}</span>
+                                                            </div>
+                                                            <span className="font-mono text-emerald-400">{fmt(item.cost)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center text-xs text-slate-600 italic py-2">No fee structure items configured.</div>
+                                        )}
+
+                                        {/* Extra Games Cost Config */}
+                                        <div className="pt-2 mt-2 border-t border-slate-800/80 flex justify-between items-center">
+                                            <label className="text-xs text-slate-400">Games After 13 Cost (per game)</label>
+                                            {isEditingSettings ? (
+                                                <input
+                                                    type="number"
+                                                    className={`${smInCls} w-24 text-right`}
+                                                    value={data.extraGamesFee !== undefined ? data.extraGamesFee : 150}
+                                                    onChange={e => setData(p => ({ ...p, extraGamesFee: parseFloat(e.target.value) || 0 }))}
+                                                    placeholder="$150"
+                                                />
+                                            ) : (
+                                                <span className="font-mono text-emerald-400 text-sm">{fmt(data.extraGamesFee !== undefined ? data.extraGamesFee : 150)}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1643,3 +1926,4 @@ function App() {
 
 // Expose App to global scope for Babel Standalone
 window.App = App;
+window.normalizeLoadedData = normalizeLoadedData;
