@@ -726,9 +726,49 @@ function App() {
         finalY += 8;
 
         const feeRows = [];
-        if (financials.playerTitansFees > 0) feeRows.push(["Player Gear", fmt(financials.playerTitansFees)]);
-        if (financials.coachTitansFees > 0) feeRows.push(["Coach Gear", fmt(financials.coachTitansFees)]);
-        if (financials.extraGamesCost > 0) feeRows.push([`Extra Games (${data.extraGames})`, fmt(financials.extraGamesCost)]);
+
+        // Spell out each Base Fee Item: name, quantity, and total amount
+        (data.feeStructure || []).forEach(item => {
+            const count = (data.roster || []).filter(p => getPersonFeeItem(p)?.id === item.id).length;
+            if (count > 0) {
+                const itemTotal = count * (parseFloat(item.cost) || 0);
+                feeRows.push([
+                    `${item.name} (${count} @ ${fmt(item.cost)})`,
+                    fmt(itemTotal)
+                ]);
+            }
+        });
+
+        // Spell out any selected Extras / Add-ons
+        (data.availableExtras || []).forEach(extra => {
+            const extraCount = (data.roster || []).filter(p => p.extras && p.extras.includes(extra.id)).length;
+            if (extraCount > 0) {
+                const extraTotal = extraCount * (parseFloat(extra.cost) || 0);
+                feeRows.push([
+                    `Extra: ${extra.name} (${extraCount} @ ${fmt(extra.cost)})`,
+                    fmt(extraTotal)
+                ]);
+            }
+        });
+
+        // Extra Games
+        if (financials.extraGamesCost > 0 || (data.extraGames || 0) > 0) {
+            const rate = data.extraGamesFee !== undefined ? parseFloat(data.extraGamesFee) : 150;
+            feeRows.push([
+                `Extra Games (${data.extraGames || 0} @ ${fmt(rate)})`,
+                fmt(financials.extraGamesCost)
+            ]);
+        }
+
+        // Custom Organization Fees
+        (data.customTitansFees || []).forEach(cf => {
+            const cost = parseFloat(cf.cost) || 0;
+            if (cost > 0 || cf.name) {
+                feeRows.push([cf.name || "Organization Fee", fmt(cost)]);
+            }
+        });
+
+        // Total
         feeRows.push(["TOTAL OWED TO ORGANIZATION", fmt(financials.titansFees)]);
 
         doc.autoTable({
@@ -790,10 +830,12 @@ function App() {
             const f = financials.playerDetails[p.id] || { finalOwed: 0, share: 0, base: 0, extras: 0, sponsorship: 0, credit: 0 };
             const feeItem = getPersonFeeItem(p);
             const pkgName = feeItem ? feeItem.name : (p.packageType && p.packageType !== 'none' ? p.packageType : 'None');
+            const baseFeeAmount = f.base !== undefined ? f.base : (feeItem ? (parseFloat(feeItem.cost) || 0) : 0);
             return [
                 `${p.firstName} ${p.lastName}`,
-                `#${p.jersey}`,
+                `#${p.jersey || '--'}`,
                 pkgName,
+                fmt(baseFeeAmount),
                 fmt(f.extras),
                 fmt(f.sponsorship),
                 fmt(f.credit),
@@ -803,15 +845,18 @@ function App() {
 
         doc.autoTable({
             startY: finalY,
-            head: [['Player', '#', 'Package', 'Extras', 'Sponsor', 'Credit', 'Total Owed']],
+            head: [['Player', '#', 'Package', 'Base Fee', 'Extras', 'Sponsor', 'Credit', 'Total Owed']],
             body: playerRows,
             theme: 'grid',
             headStyles: { fillColor: [0, 0, 0], textColor: [255, 215, 0] }, // Black & Gold
+            styles: { fontSize: 8.5 },
             columnStyles: {
+                1: { halign: 'center' },
                 3: { halign: 'right' },
                 4: { halign: 'right' },
                 5: { halign: 'right' },
-                6: { halign: 'right', fontStyle: 'bold', textColor: [217, 119, 6] }
+                6: { halign: 'right' },
+                7: { halign: 'right', fontStyle: 'bold', textColor: [217, 119, 6] }
             }
         });
 
